@@ -240,46 +240,24 @@ function initIntakeForm() {
 
 // 4. MAP DRAWING INTEGRATION
 function initMapDrawing() {
-    const mapCanvas = document.getElementById('map-canvas');
-    const btnUndo = document.getElementById('btn-map-undo');
-    const btnClear = document.getElementById('btn-map-clear');
-    
-    mapCanvas.addEventListener('click', (e) => {
-        if (appState.isGoogleMapLoaded) return;
+    const sizeButtons = document.querySelectorAll('.size-card-btn');
+    const btnNext = document.getElementById('btn-map-next');
 
-        const rect = mapCanvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+    sizeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active selected styling from all buttons
+            sizeButtons.forEach(b => b.classList.remove('selected'));
+            
+            // Select clicked button
+            btn.classList.add('selected');
 
-        appState.fallbackPoints.push({ x, y });
-        renderFallbackCanvas();
-        calculateFallbackArea();
-    });
+            // Read size card value and update state
+            const size = parseInt(btn.dataset.size);
+            appState.formData.size = size;
 
-    btnUndo.addEventListener('click', () => {
-        if (appState.isGoogleMapLoaded) {
-            alert("Use 'Reset Drawing' or drag vertices on the satellite map directly.");
-            return;
-        }
-        appState.fallbackPoints.pop();
-        renderFallbackCanvas();
-        calculateFallbackArea();
-    });
-
-    btnClear.addEventListener('click', () => {
-        if (appState.isGoogleMapLoaded) {
-            if (gPolygon) {
-                gPolygon.setMap(null);
-                gPolygon = null;
-            }
-            if (gDrawingManager) {
-                gDrawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-            }
-        } else {
-            appState.fallbackPoints = [];
-            renderFallbackCanvas();
-            calculateFallbackArea();
-        }
+            // Enable next button transition
+            btnNext.removeAttribute('disabled');
+        });
     });
 }
 
@@ -292,73 +270,18 @@ function loadIntakeMap(address) {
         loadGoogleMapScript(apiKey, address);
     } else {
         appState.isGoogleMapLoaded = false;
-        mapCanvas.innerHTML = '<svg class="map-svg-overlay" id="map-svg"></svg>';
+        mapCanvas.innerHTML = `
+            <div class="map-center-pin-overlay">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="width: 38px; height: 38px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3" fill="#ef4444"/>
+                </svg>
+            </div>
+        `;
         mapCanvas.classList.add('fallback-bg');
-        appState.fallbackPoints = [];
-        renderFallbackCanvas();
-        calculateFallbackArea();
-    }
-}
-
-function renderFallbackCanvas() {
-    const svg = document.getElementById('map-svg');
-    if (!svg) return;
-    svg.innerHTML = '';
-
-    const points = appState.fallbackPoints;
-    if (points.length === 0) return;
-
-    if (points.length >= 3) {
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
-        poly.setAttribute('points', pointsStr);
-        poly.setAttribute('fill', 'rgba(99, 102, 241, 0.25)');
-        poly.setAttribute('stroke', '#6366f1');
-        poly.setAttribute('stroke-width', '3');
-        svg.appendChild(poly);
-    } else if (points.length === 2) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', points[0].x);
-        line.setAttribute('y1', points[0].y);
-        line.setAttribute('x2', points[1].x);
-        line.setAttribute('y2', points[1].y);
-        line.setAttribute('stroke', '#6366f1');
-        line.setAttribute('stroke-width', '3');
-        svg.appendChild(line);
-    }
-
-    points.forEach((p) => {
-        const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circ.setAttribute('cx', p.x);
-        circ.setAttribute('cy', p.y);
-        circ.setAttribute('r', '6');
-        circ.setAttribute('class', 'map-vertex');
-        svg.appendChild(circ);
-    });
-}
-
-function calculateFallbackArea() {
-    const points = appState.fallbackPoints;
-    const btnNext = document.getElementById('btn-map-next');
-    
-    if (points.length < 3) {
-        document.getElementById('map-area-val').textContent = '0';
         appState.formData.size = 0;
-        return;
+        document.getElementById('btn-map-next').setAttribute('disabled', 'true');
     }
-
-    let area = 0;
-    for (let i = 0; i < points.length; i++) {
-        let j = (i + 1) % points.length;
-        area += points[i].x * points[j].y;
-        area -= points[j].x * points[i].y;
-    }
-    area = Math.abs(area) / 2;
-
-    const calculatedSize = Math.round(area * 0.07);
-    appState.formData.size = calculatedSize;
-    document.getElementById('map-area-val').textContent = calculatedSize.toLocaleString();
-    btnNext.removeAttribute('disabled');
 }
 
 function loadGoogleMapScript(apiKey, address) {
@@ -368,7 +291,7 @@ function loadGoogleMapScript(apiKey, address) {
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,drawing&callback=initGoogleMapsCallback`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsCallback`;
     script.async = true;
     script.defer = true;
     
@@ -391,51 +314,22 @@ function initGoogleMap(address) {
         }
 
         gMap = new google.maps.Map(mapCanvas, {
-            zoom: 20,
+            zoom: 19,
             center: center,
             mapTypeId: 'satellite',
             tilt: 0,
             disableDefaultUI: true,
-            zoomControl: true
+            zoomControl: false,
+            gestureHandling: 'none' // locks pinch-zoom and drag gestures completely
         });
 
-        gDrawingManager = new google.maps.drawing.DrawingManager({
-            drawingMode: google.maps.drawing.OverlayType.POLYGON,
-            drawingControl: false,
-            polygonOptions: {
-                fillColor: '#6366f1',
-                fillOpacity: 0.25,
-                strokeColor: '#6366f1',
-                strokeWeight: 3,
-                clickable: true,
-                editable: true,
-                zIndex: 1
-            }
-        });
-        gDrawingManager.setMap(gMap);
-
-        google.maps.event.addListener(gDrawingManager, 'overlaycomplete', (event) => {
-            if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-                if (gPolygon) gPolygon.setMap(null);
-                gPolygon = event.overlay;
-                calculateGooglePolygonArea(gPolygon);
-                gDrawingManager.setDrawingMode(null);
-
-                const path = gPolygon.getPath();
-                google.maps.event.addListener(path, 'set_at', () => calculateGooglePolygonArea(gPolygon));
-                google.maps.event.addListener(path, 'insert_at', () => calculateGooglePolygonArea(gPolygon));
-            }
+        // Place a static location pin on the map center
+        new google.maps.Marker({
+            position: center,
+            map: gMap,
+            title: "Estimate Property Location"
         });
     });
-}
-
-function calculateGooglePolygonArea(polygon) {
-    const areaSqMeters = google.maps.geometry.spherical.computeArea(polygon.getPath());
-    const areaSqFeet = Math.round(areaSqMeters * 10.7639);
-
-    appState.formData.size = areaSqFeet;
-    document.getElementById('map-area-val').textContent = areaSqFeet.toLocaleString();
-    document.getElementById('btn-map-next').removeAttribute('disabled');
 }
 
 // 5. SPEED-UP AI LOADER SIMULATION
@@ -677,6 +571,10 @@ function resetFlow() {
     document.getElementById('cust-phone').value = '';
     document.getElementById('cust-address').value = '';
     document.getElementById('file-input').value = '';
+    
+    // Clear size selection button states
+    document.querySelectorAll('.size-card-btn').forEach(btn => btn.classList.remove('selected'));
+    document.getElementById('btn-map-next').setAttribute('disabled', 'true');
     
     document.getElementById('file-preview').classList.add('hidden');
     document.getElementById('drop-zone').style.display = 'block';

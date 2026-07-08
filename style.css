@@ -1434,53 +1434,127 @@ select:focus {
     max-width: 90%;
 }
 
-.map-controls {
+/* Display-only Map Center Pin */
+.map-center-pin-overlay {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) translateY(-19px);
+    z-index: 15;
+    pointer-events: none;
     display: flex;
-    gap: 0.5rem;
-    z-index: 20;
-}
-
-.btn-map-ctrl {
-    padding: 0.4rem 0.8rem !important;
-    font-size: 0.75rem !important;
-    border-radius: 6px !important;
-    background: rgba(13, 20, 38, 0.9) !important;
-}
-
-.btn-map-ctrl:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-}
-
-.map-results-bar {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-top: 1rem;
+    justify-content: center;
+}
+
+/* Size selection grid of cards */
+.size-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 1.5rem;
     margin-bottom: 2rem;
+    width: 100%;
+}
+
+.size-card-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.25rem 1.5rem;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: 0.85rem 1.25rem;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    min-height: 72px; /* exceeds 56px minimum target */
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-main);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.calculated-area-badge {
-    font-size: 0.9rem;
-    font-weight: 600;
+/* Hover/Touch Active Feedback States */
+.size-card-btn:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    background: rgba(255, 255, 255, 0.04);
 }
 
-#map-area-val {
-    font-weight: 800;
-    color: var(--accent);
-    text-shadow: 0 0 10px var(--accent-glow);
+.size-card-btn:active {
+    transform: scale(0.98); /* touch visual press feedback */
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Mapped Active Selection State */
+.size-card-btn.selected {
+    background: rgba(99, 102, 241, 0.12) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.25), inset 0 0 8px rgba(99, 102, 241, 0.1);
+}
+
+.size-card-title {
+    font-family: var(--font-heading);
     font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.25rem;
+    transition: color 0.2s ease;
 }
 
-.calculated-area-hint {
-    font-size: 0.75rem;
+.size-card-btn.selected .size-card-title {
+    color: #a5b4fc; /* lighter indigo text highlight on selection */
+}
+
+.size-card-desc {
+    font-size: 0.8rem;
     color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 480px) {
+    .size-selection-grid {
+        grid-template-columns: 1fr; /* stacks vertically */
+        gap: 12px; /* 12px vertical spacing */
+        margin-bottom: 96px; /* spacing to clear sticky footer */
+    }
+
+    .size-card-btn {
+        min-height: 56px; /* standard 56px tap target */
+        padding: 1rem 1.25rem;
+    }
+
+    .size-card-title {
+        font-size: 1.05rem !important; /* at least 16px */
+    }
+
+    .map-canvas-container.display-only-map {
+        aspect-ratio: 4 / 3 !important; /* fixed aspect ratio */
+        height: auto !important; /* height scales relative to width */
+        max-height: 280px;
+    }
+
+    /* Sticky Form Actions at bottom of screen */
+    #map-actions-row {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        margin: 0 !important;
+        background: rgba(13, 20, 38, 0.85);
+        backdrop-filter: blur(16px);
+        border-top: 1px solid var(--border-light);
+        padding: 1.25rem 1.5rem;
+        z-index: 1000;
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    #map-actions-row button {
+        flex: 1; /* full equal-width next/back buttons */
+        height: 48px;
+    }
 }
