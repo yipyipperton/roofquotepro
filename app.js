@@ -317,10 +317,14 @@ function initGoogleMap(address, zip) {
     const query = `${address}, ${zip}`;
 
     geocoder.geocode({ address: query }, (results, status) => {
-        let center = { lat: 29.7604, lng: -95.3698 };
-        if (status === 'OK' && results[0]) {
-            center = results[0].geometry.location;
+        if (status !== 'OK' || !results[0]) {
+            console.warn("Geocoding failed or denied. Falling back to demo mode. Status:", status);
+            appState.isGoogleMapLoaded = false;
+            loadIntakeMap(address, zip);
+            return;
         }
+
+        const center = results[0].geometry.location;
 
         gMap = new google.maps.Map(mapCanvas, {
             zoom: 20, // Close satellite rooftop view
