@@ -528,4 +528,34 @@ const server = http.createServer((req, res) => {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
                 res.end('404 Not Found');
             } else {
-                res.writeHead(500, { 'Content-Type': 'te
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('500 Internal Server Error: ' + err.code);
+            }
+        } else {
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(content);
+        }
+    });
+});
+
+let PORT = process.env.PORT || 8080;
+
+server.once('listening', () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
+});
+
+function startServer(port) {
+    server.listen(port);
+}
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.log(`Port ${PORT} is already in use, trying port ${PORT + 1}...`);
+        PORT++;
+        startServer(PORT);
+    } else {
+        console.error(err);
+    }
+});
+
+startServer(PORT);
