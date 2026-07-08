@@ -61,15 +61,15 @@ function renderLeadsTable(leads) {
         const statusLabel = lead.status === 'scheduled' ? 'Inspection Booked' : 'Quote Sent';
 
         tr.innerHTML = `
-            <td>${lead.date}</td>
-            <td>
+            <td data-label="Date">${lead.date}</td>
+            <td data-label="Customer">
                 <span class="lead-name">${lead.name}</span>
                 <span class="lead-email">${lead.email} | ${lead.phone}</span>
             </td>
-            <td>${lead.address}</td>
-            <td>${lead.size.toLocaleString()} sqft | ${materialText}</td>
-            <td style="font-weight: 600; color: var(--accent);">$${lead.price.toLocaleString()}</td>
-            <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+            <td data-label="Address">${lead.address}</td>
+            <td data-label="Specs">${lead.size.toLocaleString()} sqft | ${materialText}</td>
+            <td data-label="Estimate" style="font-weight: 600; color: var(--accent);">$${lead.price.toLocaleString()}</td>
+            <td data-label="Status"><span class="status-badge ${statusClass}">${statusLabel}</span></td>
         `;
         tableBody.appendChild(tr);
     });

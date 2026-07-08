@@ -1440,6 +1440,61 @@ select:focus {
     #btn-clear-leads {
         width: 100% !important;
     }
+
+    /* Responsive Leads Table - stacks cells into card rows */
+    .leads-table thead {
+        display: none !important;
+    }
+    
+    .leads-table tr {
+        display: block !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 12px !important;
+        padding: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    .leads-table td {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: right !important;
+        padding: 0.65rem 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        font-size: 0.9rem !important;
+        gap: 1rem !important;
+        word-break: break-word !important;
+    }
+    
+    .leads-table td:last-child {
+        border-bottom: none !important;
+    }
+    
+    .leads-table td::before {
+        content: attr(data-label) !important;
+        float: left !important;
+        font-weight: 600 !important;
+        color: var(--text-muted) !important;
+        text-transform: uppercase !important;
+        font-size: 0.75rem !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .leads-table td .lead-name {
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        display: block !important;
+    }
+
+    .leads-table td .lead-email {
+        word-break: break-all !important;
+        text-align: right !important;
+        font-size: 0.8rem !important;
+        display: block !important;
+        color: var(--text-muted) !important;
+    }
 }
 
 .hidden {
