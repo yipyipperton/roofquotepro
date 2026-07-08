@@ -589,4 +589,34 @@ function resetFlow() {
     stepContact.style.display = 'block';
     setTimeout(() => stepContact.classList.add('active'), 50);
 
-    document.ge
+    document.getElementById('cust-name').value = '';
+    document.getElementById('cust-email').value = '';
+    document.getElementById('cust-phone').value = '';
+    document.getElementById('cust-address').value = '';
+    document.getElementById('cust-zip').value = '';
+    document.getElementById('file-input').value = '';
+    
+    document.getElementById('file-preview').classList.add('hidden');
+    document.getElementById('drop-zone').style.display = 'block';
+
+    appState.currentStep = 1;
+    appState.fallbackPoints = [];
+    appState.formData = {
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        zip: '',
+        size: 2400,
+        material: 'asphalt',
+        pitch: 'medium',
+        stories: '1',
+        photoName: 'Default Demo House',
+        photoSize: 'N/A'
+    };
+
+    document.querySelectorAll('.progress-step').forEach(indicator => {
+        indicator.classList.remove('active', 'completed');
+    });
+    document.querySelector('.progress-step.step-1').classList.add('active');
+}
