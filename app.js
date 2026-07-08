@@ -149,6 +149,11 @@ function initIntakeForm() {
     });
 
     btnMapNext.addEventListener('click', () => {
+        if (appState.formData.size === 0 && appState.fallbackPoints.length === 0) {
+            const proceed = confirm("No roof outline drawn. Would you like to proceed with a standard 2,400 sq ft roof estimate?");
+            if (!proceed) return;
+            appState.formData.size = 2400;
+        }
         document.getElementById('roof-size').value = appState.formData.size;
         switchStep(stepMap, stepSpecs, 3);
     });
