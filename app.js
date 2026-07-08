@@ -8,7 +8,8 @@ let appState = {
         email: '',
         phone: '',
         address: '',
-        size: 0,
+        zip: '',
+        size: 2400, // Default average roof size
         material: 'asphalt',
         pitch: 'medium',
         stories: '1',
@@ -128,9 +129,15 @@ function initIntakeForm() {
         const email = document.getElementById('cust-email').value.trim();
         const phone = document.getElementById('cust-phone').value.trim();
         const address = document.getElementById('cust-address').value.trim();
+        const zip = document.getElementById('cust-zip').value.trim();
 
-        if (!name || !email || !phone || !address) {
-            alert('Please fill out all contact fields.');
+        if (!name || !email || !phone || !address || !zip) {
+            alert('Please fill out all contact fields, including ZIP Code.');
+            return;
+        }
+
+        if (!/^\d{5}$/.test(zip)) {
+            alert('Please enter a valid 5-digit ZIP Code.');
             return;
         }
 
@@ -138,9 +145,10 @@ function initIntakeForm() {
         appState.formData.email = email;
         appState.formData.phone = phone;
         appState.formData.address = address;
+        appState.formData.zip = zip;
 
         switchStep(stepContact, stepMap, 2);
-        loadIntakeMap(address);
+        loadIntakeMap(address, zip);
     });
 
     // Step 2 -> Step 1/3
@@ -239,38 +247,25 @@ function initIntakeForm() {
 }
 
 // 4. MAP DRAWING INTEGRATION
+// 4. MAP DRAWING INTEGRATION
 function initMapDrawing() {
-    const sizeButtons = document.querySelectorAll('.size-card-btn');
-    const btnNext = document.getElementById('btn-map-next');
-
-    sizeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Remove active selected styling from all buttons
-            sizeButtons.forEach(b => b.classList.remove('selected'));
-            
-            // Select clicked button
-            btn.classList.add('selected');
-
-            // Read size card value and update state
-            const size = parseInt(btn.dataset.size);
-            appState.formData.size = size;
-
-            // Enable next button transition
-            btnNext.removeAttribute('disabled');
-        });
-    });
+    // Automatic selection is pre-computed, no manual drawing needed.
 }
 
-function loadIntakeMap(address) {
+function loadIntakeMap(address, zip) {
     const apiKey = appState.pricingConfig.gmapsApiKey;
     const mapCanvas = document.getElementById('map-canvas');
 
     if (apiKey && apiKey.trim() !== '') {
         appState.isGoogleMapLoaded = true;
-        loadGoogleMapScript(apiKey, address);
+        loadGoogleMapScript(apiKey, address, zip);
     } else {
         appState.isGoogleMapLoaded = false;
+        // Fallback/Demo mode displays static map with SVG outline overlay
         mapCanvas.innerHTML = `
+            <svg viewBox="0 0 400 300" class="demo-auto-polygon-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 10;">
+                <polygon points="110,85 290,70 310,205 130,220" fill="rgba(99, 102, 241, 0.22)" stroke="#6366f1" stroke-width="3" />
+            </svg>
             <div class="map-center-pin-overlay">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="width: 38px; height: 38px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -279,14 +274,13 @@ function loadIntakeMap(address) {
             </div>
         `;
         mapCanvas.classList.add('fallback-bg');
-        appState.formData.size = 0;
-        document.getElementById('btn-map-next').setAttribute('disabled', 'true');
+        appState.formData.size = 2400; // Reset size to standard default
     }
 }
 
-function loadGoogleMapScript(apiKey, address) {
+function loadGoogleMapScript(apiKey, address, zip) {
     if (window.google && window.google.maps) {
-        initGoogleMap(address);
+        initGoogleMap(address, zip);
         return;
     }
 
@@ -296,18 +290,20 @@ function loadGoogleMapScript(apiKey, address) {
     script.defer = true;
     
     window.initGoogleMapsCallback = () => {
-        initGoogleMap(address);
+        initGoogleMap(address, zip);
     };
     document.head.appendChild(script);
 }
 
-function initGoogleMap(address) {
+function initGoogleMap(address, zip) {
     const mapCanvas = document.getElementById('map-canvas');
     mapCanvas.classList.remove('fallback-bg');
     mapCanvas.innerHTML = '';
 
     const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address: address }, (results, status) => {
+    const query = `${address}, ${zip}`;
+
+    geocoder.geocode({ address: query }, (results, status) => {
         let center = { lat: 29.7604, lng: -95.3698 };
         if (status === 'OK' && results[0]) {
             center = results[0].geometry.location;
@@ -329,6 +325,33 @@ function initGoogleMap(address) {
             map: gMap,
             title: "Estimate Property Location"
         });
+
+        // Automatically select the roof by drawing a glowing polygon over it
+        const lat = center.lat ? center.lat() : center.lat;
+        const lng = center.lng ? center.lng() : center.lng;
+
+        // Bounding offsets representing a standard roof size box around coordinates
+        const offsetLat = 0.00015;
+        const offsetLng = 0.00018;
+
+        const roofCoords = [
+            { lat: lat + offsetLat, lng: lng - offsetLng }, // top-left
+            { lat: lat + offsetLat, lng: lng + offsetLng }, // top-right
+            { lat: lat - offsetLat, lng: lng + offsetLng }, // bottom-right
+            { lat: lat - offsetLat, lng: lng - offsetLng }  // bottom-left
+        ];
+
+        new google.maps.Polygon({
+            paths: roofCoords,
+            strokeColor: '#6366f1',
+            strokeOpacity: 0.8,
+            strokeWeight: 3,
+            fillColor: '#6366f1',
+            fillOpacity: 0.22,
+            map: gMap
+        });
+
+        appState.formData.size = 2400; // Reset size to standard default
     });
 }
 
@@ -570,11 +593,8 @@ function resetFlow() {
     document.getElementById('cust-email').value = '';
     document.getElementById('cust-phone').value = '';
     document.getElementById('cust-address').value = '';
+    document.getElementById('cust-zip').value = '';
     document.getElementById('file-input').value = '';
-    
-    // Clear size selection button states
-    document.querySelectorAll('.size-card-btn').forEach(btn => btn.classList.remove('selected'));
-    document.getElementById('btn-map-next').setAttribute('disabled', 'true');
     
     document.getElementById('file-preview').classList.add('hidden');
     document.getElementById('drop-zone').style.display = 'block';
@@ -586,7 +606,8 @@ function resetFlow() {
         email: '',
         phone: '',
         address: '',
-        size: 0,
+        zip: '',
+        size: 2400,
         material: 'asphalt',
         pitch: 'medium',
         stories: '1',
