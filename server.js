@@ -3,6 +3,28 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Load local .env file securely if present (excluded from Git tracking)
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+    try {
+        const envData = fs.readFileSync(envPath, 'utf8');
+        envData.split(/\r?\n/).forEach(line => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine || trimmedLine.startsWith('#')) return;
+            const match = trimmedLine.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+            if (match) {
+                const key = match[1];
+                let value = match[2] || '';
+                if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+                if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+                process.env[key] = value.trim();
+            }
+        });
+    } catch (err) {
+        console.error('Error reading .env file:', err);
+    }
+}
+
 // Server Session Storage
 const activeSessions = new Set();
 
@@ -70,6 +92,31 @@ if (!fs.existsSync(SETTINGS_FILE)) {
         adminPassword: "pizzas778"
     };
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(defaultSettings, null, 2));
+}
+
+// Helper to read settings securely with process.env overrides
+function readSettings(callback) {
+    fs.readFile(SETTINGS_FILE, 'utf8', (err, data) => {
+        if (err) {
+            callback(err, null);
+            return;
+        }
+        try {
+            const settings = JSON.parse(data);
+
+            // Private Environment Variable overrides
+            if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '') {
+                settings.resendApiKey = process.env.RESEND_API_KEY.trim();
+            }
+            if (process.env.GMAPS_API_KEY && process.env.GMAPS_API_KEY.trim() !== '') {
+                settings.gmapsApiKey = process.env.GMAPS_API_KEY.trim();
+            }
+
+            callback(null, settings);
+        } catch (e) {
+            callback(e, null);
+        }
+    });
 }
 
 // Helper to parse cookies from headers
@@ -252,14 +299,13 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            fs.readFile(SETTINGS_FILE, 'utf8', (err, data) => {
+            readSettings((err, settings) => {
                 if (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, error: 'Database read error' }));
                     return;
                 }
 
-                const settings = JSON.parse(data);
                 if (body.password === settings.adminPassword) {
                     const sessionId = crypto.randomBytes(24).toString('hex');
                     activeSessions.add(sessionId);
@@ -358,14 +404,9 @@ const server = http.createServer((req, res) => {
                     }
 
                     // Trigger async email alerts via Resend REST API in background
-                    fs.readFile(SETTINGS_FILE, 'utf8', (err, settingsData) => {
-                        if (!err && settingsData) {
-                            try {
-                                const settings = JSON.parse(settingsData);
-                                sendResendEmails(settings, newLead);
-                            } catch (e) {
-                                console.error('Failed to parse settings for email alerts:', e);
-                            }
+                    readSettings((err, settings) => {
+                        if (!err && settings) {
+                            sendResendEmails(settings, newLead);
                         }
                     });
 
@@ -405,14 +446,13 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        fs.readFile(SETTINGS_FILE, 'utf8', (err, data) => {
+        readSettings((err, settings) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Could not read settings' }));
                 return;
             }
 
-            const settings = JSON.parse(data);
             const cleanSettings = { ...settings };
             delete cleanSettings.adminPassword; // Hide the password hash from client scripts
 
@@ -424,14 +464,12 @@ const server = http.createServer((req, res) => {
 
     // 6. API: Get Public Settings (Public)
     if (urlPath === '/api/settings' && method === 'GET') {
-        fs.readFile(SETTINGS_FILE, 'utf8', (err, data) => {
+        readSettings((err, settings) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Could not read settings' }));
                 return;
             }
-
-            const settings = JSON.parse(data);
             
             // Clean sensitive data (Hide admin password AND keys/emails from public scripts)
             const cleanSettings = { ...settings };
