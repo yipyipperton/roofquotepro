@@ -323,45 +323,49 @@ function initGoogleMap(address, zip) {
         }
 
         gMap = new google.maps.Map(mapCanvas, {
-            zoom: 20, // High-zoom rooftop satellite view
+            zoom: 20, // Close satellite rooftop view
             center: center,
             mapTypeId: 'satellite',
             tilt: 0,
             disableDefaultUI: true,
             zoomControl: false,
-            gestureHandling: 'none' // locks pinch-zoom and drag/pan gestures completely
+            gestureHandling: 'greedy' // Enable mobile/desktop panning to align roof
         });
 
-        // Place a static location pin on the map center
-        new google.maps.Marker({
-            position: center,
-            map: gMap,
-            title: "Estimate Property Location"
-        });
-
-        // Automatically outline the roof by centering a glowing polygon box exactly over geocoded LatLng
-        const lat = center.lat ? center.lat() : center.lat;
-        const lng = center.lng ? center.lng() : center.lng;
-
-        // Tighter offsets representing standard roof structure footprint
-        const offsetLat = 0.00010;
-        const offsetLng = 0.00012;
-
-        const roofCoords = [
-            { lat: lat + offsetLat, lng: lng - offsetLng }, // top-left
-            { lat: lat + offsetLat, lng: lng + offsetLng }, // top-right
-            { lat: lat - offsetLat, lng: lng + offsetLng }, // bottom-right
-            { lat: lat - offsetLat, lng: lng - offsetLng }  // bottom-left
-        ];
-
-        new google.maps.Polygon({
-            paths: roofCoords,
+        // Glowing indigo polygon overlay representing scanned roof footprint
+        const roofPolygon = new google.maps.Polygon({
             strokeColor: '#6366f1',
             strokeOpacity: 0.8,
             strokeWeight: 3,
             fillColor: '#6366f1',
             fillOpacity: 0.22,
             map: gMap
+        });
+
+        // Dynamically compute and adjust polygon boundary center coordinates
+        const updatePolygonCenter = (newCenter) => {
+            const lat = newCenter.lat ? newCenter.lat() : newCenter.lat;
+            const lng = newCenter.lng ? newCenter.lng() : newCenter.lng;
+
+            // Bounding offset sizes representing average roof footprint
+            const offsetLat = 0.00010;
+            const offsetLng = 0.00012;
+
+            const roofCoords = [
+                { lat: lat + offsetLat, lng: lng - offsetLng }, // top-left
+                { lat: lat + offsetLat, lng: lng + offsetLng }, // top-right
+                { lat: lat - offsetLat, lng: lng + offsetLng }, // bottom-right
+                { lat: lat - offsetLat, lng: lng - offsetLng }  // bottom-left
+            ];
+            roofPolygon.setPaths(roofCoords);
+        };
+
+        // Render initial footprint center
+        updatePolygonCenter(center);
+
+        // Keep outline polygon locked to map center dynamically as roofer pans/drags the view
+        gMap.addListener('center_changed', () => {
+            updatePolygonCenter(gMap.getCenter());
         });
 
         appState.formData.size = 2400; // Reset size to standard default
