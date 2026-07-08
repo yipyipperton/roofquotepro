@@ -9,6 +9,7 @@ let appState = {
         phone: '',
         address: '',
         zip: '',
+        coords: null,
         size: 2400, // Default average roof size
         material: 'asphalt',
         pitch: 'medium',
@@ -26,13 +27,18 @@ let gMap = null;
 let gPolygon = null;
 let gDrawingManager = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadSettings();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadSettings();
     initNavigation();
     initIntakeForm();
     initMapDrawing();
     initSlider();
     initRealtimeCalculator();
+
+    const apiKey = appState.pricingConfig.gmapsApiKey;
+    if (apiKey && apiKey.trim() !== '') {
+        loadGoogleMapScript(apiKey);
+    }
 });
 
 // 1. API GET: Fetch pricing configurations from server
@@ -278,21 +284,49 @@ function loadIntakeMap(address, zip) {
     }
 }
 
-function loadGoogleMapScript(apiKey, address, zip) {
+function loadGoogleMapScript(apiKey) {
     if (window.google && window.google.maps) {
-        initGoogleMap(address, zip);
+        appState.isGoogleMapLoaded = true;
+        initAutocomplete();
         return;
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsCallback`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsCallback`;
     script.async = true;
     script.defer = true;
     
     window.initGoogleMapsCallback = () => {
-        initGoogleMap(address, zip);
+        appState.isGoogleMapLoaded = true;
+        initAutocomplete();
     };
     document.head.appendChild(script);
+}
+
+function initAutocomplete() {
+    const addressInput = document.getElementById('cust-address');
+    if (!addressInput) return;
+
+    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+        types: ['address'],
+        componentRestrictions: { country: 'us' }
+    });
+
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+            appState.formData.coords = {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng()
+            };
+
+            // Auto-fill ZIP code if available in address details
+            const zipComp = place.address_components.find(c => c.types.includes('postal_code'));
+            if (zipComp) {
+                document.getElementById('cust-zip').value = zipComp.short_name;
+            }
+        }
+    });
 }
 
 function initGoogleMap(address, zip) {
@@ -300,39 +334,31 @@ function initGoogleMap(address, zip) {
     mapCanvas.classList.remove('fallback-bg');
     mapCanvas.innerHTML = '';
 
-    const geocoder = new google.maps.Geocoder();
-    const query = `${address}, ${zip}`;
-
-    geocoder.geocode({ address: query }, (results, status) => {
-        let center = { lat: 29.7604, lng: -95.3698 };
-        if (status === 'OK' && results[0]) {
-            center = results[0].geometry.location;
-        }
-
+    const renderMap = (center) => {
         gMap = new google.maps.Map(mapCanvas, {
-            zoom: 19,
+            zoom: 20, // Increased zoom level to show close-up details of individual roof
             center: center,
             mapTypeId: 'satellite',
             tilt: 0,
             disableDefaultUI: true,
             zoomControl: false,
-            gestureHandling: 'none' // locks pinch-zoom and drag gestures completely
+            gestureHandling: 'none'
         });
 
-        // Place a static location pin on the map center
+        // Pinpoint exact coordinates
         new google.maps.Marker({
             position: center,
             map: gMap,
             title: "Estimate Property Location"
         });
 
-        // Automatically select the roof by drawing a glowing polygon over it
+        // Automatically outline the roof by centering a glowing polygon box exactly over geocoded LatLng
         const lat = center.lat ? center.lat() : center.lat;
         const lng = center.lng ? center.lng() : center.lng;
 
-        // Bounding offsets representing a standard roof size box around coordinates
-        const offsetLat = 0.00015;
-        const offsetLng = 0.00018;
+        // Tighter offsets representing standard roof structure footprint
+        const offsetLat = 0.00010;
+        const offsetLng = 0.00012;
 
         const roofCoords = [
             { lat: lat + offsetLat, lng: lng - offsetLng }, // top-left
@@ -352,7 +378,22 @@ function initGoogleMap(address, zip) {
         });
 
         appState.formData.size = 2400; // Reset size to standard default
-    });
+    };
+
+    if (appState.formData.coords) {
+        renderMap(appState.formData.coords);
+    } else {
+        // Fallback geocoder if autocomplete was bypassed
+        const geocoder = new google.maps.Geocoder();
+        const query = `${address}, ${zip}`;
+        geocoder.geocode({ address: query }, (results, status) => {
+            let center = { lat: 29.7604, lng: -95.3698 };
+            if (status === 'OK' && results[0]) {
+                center = results[0].geometry.location;
+            }
+            renderMap(center);
+        });
+    }
 }
 
 // 5. SPEED-UP AI LOADER SIMULATION
