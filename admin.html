@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoofQuote AI | Contractor Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo" onclick="window.location.href='/'">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m2 22 1-1h3l9-9 3 3-9 9H3l-1-1Z"/>
+                    <path d="M14 6.5 17.5 10"/>
+                    <path d="m16 2 6 6"/>
+                </svg>
+                <span class="logo-text">RoofQuote <span class="accent-text">AI</span></span>
+            </div>
+            <nav class="nav-actions">
+                <button id="btn-logout" class="nav-btn secondary-btn">
+                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign Out
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section id="contractor-dashboard" class="content-section active">
+            <div class="admin-header-flex">
+                <div>
+                    <h1>Contractor Control Center</h1>
+                    <p class="admin-subtitle">Manage inbound leads, adjust pricing calculators, and review estimates.</p>
+                </div>
+                <div class="admin-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                        <svg class="icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+                        View Public Portal
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="admin-stats-grid">
+                <div class="card glass-card stat-card">
+                    <div class="stat-meta">
+                        <span class="stat-label">Total Leads Captured</span>
+                        <div class="stat-value" id="stat-total-leads">0</div>
+                    </div>
+                    <div class="stat-icon-wrapper purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                </div>
+                <div class="card glass-card stat-card">
+                    <div class="stat-meta">
+                        <span class="stat-label">Estimated Pipeline Value</span>
+                        <div class="stat-value" id="stat-pipeline">$0</div>
+                    </div>
+                    <div class="stat-icon-wrapper green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                </div>
+                <div class="card glass-card stat-card">
+                    <div class="stat-meta">
+                        <span class="stat-label">Average Estimate</span>
+                        <div class="stat-value" id="stat-average-deal">$0</div>
+                    </div>
+                    <div class="stat-icon-wrapper blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-main-grid">
+                <!-- Left side: Pricing controls -->
+                <div class="admin-left">
+                    <div class="card glass-card panel-card">
+                        <h2 class="panel-title">Calculator Variables & Rates</h2>
+                        <p class="panel-subtitle">Configure materials and installation pricing factors.</p>
+
+                        <form id="pricing-settings-form">
+                            <div class="settings-group">
+                                <h3>API & Alert Integrations</h3>
+                                <div class="settings-row">
+                                    <label for="gmaps-api-key">Google Maps API Key</label>
+                                    <input type="text" id="gmaps-api-key" placeholder="AIzaSy..." style="width: 180px; padding: 0.45rem 0.6rem; font-size: 0.85rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-light); border-radius: 6px; color: white;">
+                                </div>
+                                <div class="settings-row" style="margin-top: 0.85rem;">
+                                    <label for="resend-api-key">Resend API Key</label>
+                                    <input type="text" id="resend-api-key" placeholder="re_..." style="width: 180px; padding: 0.45rem 0.6rem; font-size: 0.85rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-light); border-radius: 6px; color: white;">
+                                </div>
+                                <div class="settings-row" style="margin-top: 0.85rem;">
+                                    <label for="contractor-email">Contractor Email</label>
+                                    <input type="email" id="contractor-email" placeholder="sales@roofing.com" style="width: 180px; padding: 0.45rem 0.6rem; font-size: 0.85rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-light); border-radius: 6px; color: white;">
+                                </div>
+                                <p class="helper-text" style="font-size: 0.75rem; margin-top: 0.25rem;">Input a Resend key to trigger automated lead alerts and homeowner quotes via email.</p>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>Material Base Cost (per sq ft)</h3>
+                                <div class="settings-row">
+                                    <label for="rate-asphalt">Architectural Asphalt</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="rate-asphalt" value="1.50" step="0.05">
+                                        <span class="input-unit">/ sqft</span>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <label for="rate-metal">Standing-Seam Metal</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="rate-metal" value="3.20" step="0.05">
+                                        <span class="input-unit">/ sqft</span>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <label for="rate-slate">Slate & Clay Tile</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="rate-slate" value="5.80" step="0.05">
+                                        <span class="input-unit">/ sqft</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>Installation Cost (per sq ft)</h3>
+                                <div class="settings-row">
+                                    <label for="rate-install">Base Labor</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="rate-install" value="1.75" step="0.05">
+                                        <span class="input-unit">/ sqft</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>Difficulty Multipliers</h3>
+                                <div class="settings-row">
+                                    <label for="mult-steep">Steep Pitch Slope</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="mult-steep" value="1.30" step="0.05">
+                                        <span class="input-unit">x</span>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <label for="mult-2story">2-Story Building</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="mult-2story" value="1.20" step="0.05">
+                                        <span class="input-unit">x</span>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <label for="mult-3story">3+ Story Building</label>
+                                    <div class="input-with-unit small">
+                                        <input type="number" id="mult-3story" value="1.40" step="0.05">
+                                        <span class="input-unit">x</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary full-width" id="btn-save-settings">
+                                Save Pricing Engine Config
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right side: Leads table -->
+                <div class="admin-right">
+                    <div class="card glass-card panel-card leads-panel">
+                        <div class="panel-header-row">
+                            <div>
+                                <h2 class="panel-title">Incoming AI Leads</h2>
+                                <p class="panel-subtitle">Leads captured from the quote intake form.</p>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-small" id="btn-clear-leads">
+                                Clear Leads List
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="leads-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Customer</th>
+                                        <th>Address</th>
+                                        <th>Specs</th>
+                                        <th>Estimate</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leads-table-body">
+                                    <!-- Dynamic rows loaded from admin.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 RoofQuote AI. Secured administrator session environment.</p>
+        </div>
+    </footer>
+
+    <!-- Admin Panel JavaScript Logic -->
+    <script src="admin.js"></script>
+</body>
+</html>
