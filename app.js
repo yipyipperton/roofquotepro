@@ -285,6 +285,24 @@ function loadIntakeMap(address, zip) {
 }
 
 function loadGoogleMapScript(apiKey) {
+    // Intercept Google Maps API key restriction or auth failures
+    window.gm_authFailure = () => {
+        console.warn("Google Maps API auth failure. Reverting to demo mode.");
+        appState.isGoogleMapLoaded = false;
+        
+        // Remove Google Autocomplete bindings from input
+        const addressInput = document.getElementById('cust-address');
+        if (addressInput) {
+            const cloned = addressInput.cloneNode(true);
+            addressInput.parentNode.replaceChild(cloned, addressInput);
+        }
+
+        // If currently displaying Step 2 outline, hot-swap to demo fallback layout
+        if (appState.currentStep === 2) {
+            loadIntakeMap(appState.formData.address, appState.formData.zip);
+        }
+    };
+
     if (window.google && window.google.maps) {
         appState.isGoogleMapLoaded = true;
         initAutocomplete();
@@ -304,29 +322,33 @@ function loadGoogleMapScript(apiKey) {
 }
 
 function initAutocomplete() {
-    const addressInput = document.getElementById('cust-address');
-    if (!addressInput) return;
+    try {
+        const addressInput = document.getElementById('cust-address');
+        if (!addressInput) return;
 
-    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-        types: ['address'],
-        componentRestrictions: { country: 'us' }
-    });
+        const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+            types: ['address'],
+            componentRestrictions: { country: 'us' }
+        });
 
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.geometry && place.geometry.location) {
-            appState.formData.coords = {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng()
-            };
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.geometry && place.geometry.location) {
+                appState.formData.coords = {
+                    lat: place.geometry.location.lat(),
+                    lng: place.geometry.location.lng()
+                };
 
-            // Auto-fill ZIP code if available in address details
-            const zipComp = place.address_components.find(c => c.types.includes('postal_code'));
-            if (zipComp) {
-                document.getElementById('cust-zip').value = zipComp.short_name;
+                // Auto-fill ZIP code if available in address details
+                const zipComp = place.address_components.find(c => c.types.includes('postal_code'));
+                if (zipComp) {
+                    document.getElementById('cust-zip').value = zipComp.short_name;
+                }
             }
-        }
-    });
+        });
+    } catch (err) {
+        console.error("Autocomplete failure:", err);
+    }
 }
 
 function initGoogleMap(address, zip) {
