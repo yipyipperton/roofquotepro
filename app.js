@@ -275,9 +275,6 @@ function initMapDrawing() {
             if (gDrawingManager) {
                 gDrawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
             }
-            appState.formData.size = 0;
-            document.getElementById('map-area-val').textContent = '0';
-            document.getElementById('btn-map-next').setAttribute('disabled', 'true');
         } else {
             appState.fallbackPoints = [];
             renderFallbackCanvas();
@@ -347,7 +344,6 @@ function calculateFallbackArea() {
     if (points.length < 3) {
         document.getElementById('map-area-val').textContent = '0';
         appState.formData.size = 0;
-        btnNext.setAttribute('disabled', 'true');
         return;
     }
 
@@ -681,7 +677,6 @@ function resetFlow() {
     document.getElementById('cust-phone').value = '';
     document.getElementById('cust-address').value = '';
     document.getElementById('file-input').value = '';
-    document.getElementById('btn-map-next').setAttribute('disabled', 'true');
     
     document.getElementById('file-preview').classList.add('hidden');
     document.getElementById('drop-zone').style.display = 'block';
