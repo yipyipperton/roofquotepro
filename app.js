@@ -34,11 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMapDrawing();
     initSlider();
     initRealtimeCalculator();
-
-    const apiKey = appState.pricingConfig.gmapsApiKey;
-    if (apiKey && apiKey.trim() !== '') {
-        loadGoogleMapScript(apiKey);
-    }
 });
 
 // 1. API GET: Fetch pricing configurations from server
@@ -263,7 +258,6 @@ function loadIntakeMap(address, zip) {
     const mapCanvas = document.getElementById('map-canvas');
 
     if (apiKey && apiKey.trim() !== '') {
-        appState.isGoogleMapLoaded = true;
         loadGoogleMapScript(apiKey, address, zip);
     } else {
         appState.isGoogleMapLoaded = false;
@@ -284,18 +278,11 @@ function loadIntakeMap(address, zip) {
     }
 }
 
-function loadGoogleMapScript(apiKey) {
+function loadGoogleMapScript(apiKey, address, zip) {
     // Intercept Google Maps API key restriction or auth failures
     window.gm_authFailure = () => {
         console.warn("Google Maps API auth failure. Reverting to demo mode.");
         appState.isGoogleMapLoaded = false;
-        
-        // Remove Google Autocomplete bindings from input
-        const addressInput = document.getElementById('cust-address');
-        if (addressInput) {
-            const cloned = addressInput.cloneNode(true);
-            addressInput.parentNode.replaceChild(cloned, addressInput);
-        }
 
         // If currently displaying Step 2 outline, hot-swap to demo fallback layout
         if (appState.currentStep === 2) {
@@ -305,50 +292,20 @@ function loadGoogleMapScript(apiKey) {
 
     if (window.google && window.google.maps) {
         appState.isGoogleMapLoaded = true;
-        initAutocomplete();
+        initGoogleMap(address, zip);
         return;
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsCallback`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsCallback`;
     script.async = true;
     script.defer = true;
     
     window.initGoogleMapsCallback = () => {
         appState.isGoogleMapLoaded = true;
-        initAutocomplete();
+        initGoogleMap(address, zip);
     };
     document.head.appendChild(script);
-}
-
-function initAutocomplete() {
-    try {
-        const addressInput = document.getElementById('cust-address');
-        if (!addressInput) return;
-
-        const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-            types: ['address'],
-            componentRestrictions: { country: 'us' }
-        });
-
-        autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (place.geometry && place.geometry.location) {
-                appState.formData.coords = {
-                    lat: place.geometry.location.lat(),
-                    lng: place.geometry.location.lng()
-                };
-
-                // Auto-fill ZIP code if available in address details
-                const zipComp = place.address_components.find(c => c.types.includes('postal_code'));
-                if (zipComp) {
-                    document.getElementById('cust-zip').value = zipComp.short_name;
-                }
-            }
-        });
-    } catch (err) {
-        console.error("Autocomplete failure:", err);
-    }
 }
 
 function initGoogleMap(address, zip) {
@@ -356,18 +313,26 @@ function initGoogleMap(address, zip) {
     mapCanvas.classList.remove('fallback-bg');
     mapCanvas.innerHTML = '';
 
-    const renderMap = (center) => {
+    const geocoder = new google.maps.Geocoder();
+    const query = `${address}, ${zip}`;
+
+    geocoder.geocode({ address: query }, (results, status) => {
+        let center = { lat: 29.7604, lng: -95.3698 };
+        if (status === 'OK' && results[0]) {
+            center = results[0].geometry.location;
+        }
+
         gMap = new google.maps.Map(mapCanvas, {
-            zoom: 20, // Increased zoom level to show close-up details of individual roof
+            zoom: 20, // High-zoom rooftop satellite view
             center: center,
             mapTypeId: 'satellite',
             tilt: 0,
             disableDefaultUI: true,
             zoomControl: false,
-            gestureHandling: 'none'
+            gestureHandling: 'none' // locks pinch-zoom and drag/pan gestures completely
         });
 
-        // Pinpoint exact coordinates
+        // Place a static location pin on the map center
         new google.maps.Marker({
             position: center,
             map: gMap,
@@ -400,22 +365,7 @@ function initGoogleMap(address, zip) {
         });
 
         appState.formData.size = 2400; // Reset size to standard default
-    };
-
-    if (appState.formData.coords) {
-        renderMap(appState.formData.coords);
-    } else {
-        // Fallback geocoder if autocomplete was bypassed
-        const geocoder = new google.maps.Geocoder();
-        const query = `${address}, ${zip}`;
-        geocoder.geocode({ address: query }, (results, status) => {
-            let center = { lat: 29.7604, lng: -95.3698 };
-            if (status === 'OK' && results[0]) {
-                center = results[0].geometry.location;
-            }
-            renderMap(center);
-        });
-    }
+    });
 }
 
 // 5. SPEED-UP AI LOADER SIMULATION
