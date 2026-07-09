@@ -253,11 +253,11 @@ function initMapDrawing() {
     // Automatic selection is pre-computed, no manual drawing needed.
 }
 
-function loadIntakeMap(address, zip) {
+function loadIntakeMap(address, zip, isFallback = false) {
     const apiKey = appState.pricingConfig.gmapsApiKey;
     const mapCanvas = document.getElementById('map-canvas');
 
-    if (apiKey && apiKey.trim() !== '') {
+    if (!isFallback && apiKey && apiKey.trim() !== '' && apiKey !== 'YOUR_GMAPS_API_KEY_ENVIRONMENT_VARIABLE') {
         loadGoogleMapScript(apiKey, address, zip);
     } else {
         appState.isGoogleMapLoaded = false;
@@ -286,7 +286,7 @@ function loadGoogleMapScript(apiKey, address, zip) {
 
         // If currently displaying Step 2 outline, hot-swap to demo fallback layout
         if (appState.currentStep === 2) {
-            loadIntakeMap(appState.formData.address, appState.formData.zip);
+            loadIntakeMap(appState.formData.address, appState.formData.zip, true);
         }
     };
 
@@ -320,7 +320,7 @@ function initGoogleMap(address, zip) {
         if (status !== 'OK' || !results[0]) {
             console.warn("Geocoding failed or denied. Falling back to demo mode. Status:", status);
             appState.isGoogleMapLoaded = false;
-            loadIntakeMap(address, zip);
+            loadIntakeMap(address, zip, true);
             return;
         }
 
@@ -580,4 +580,64 @@ function initSlider() {
 
     handle.addEventListener('mousedown', () => isSliding = true);
     window.addEventListener('mouseup', () => isSliding = false);
-    container
+    container.addEventListener('mousemove', (e) => {
+        if (!isSliding) return;
+        moveSlider(e.clientX);
+    });
+
+    handle.addEventListener('touchstart', () => isSliding = true);
+    window.addEventListener('touchend', () => isSliding = false);
+    container.addEventListener('touchmove', (e) => {
+        if (!isSliding) return;
+        if (e.touches && e.touches[0]) {
+            moveSlider(e.touches[0].clientX);
+        }
+    });
+
+    container.addEventListener('click', (e) => {
+        if (e.target.closest('#slider-handle')) return;
+        moveSlider(e.clientX);
+    });
+}
+
+// 9. CLEAN RECOVERY RESET FLOW
+function resetFlow() {
+    document.getElementById('step-map').style.display = 'none';
+    document.getElementById('step-specs').style.display = 'none';
+    document.getElementById('step-upload').style.display = 'none';
+    
+    const stepContact = document.getElementById('step-contact');
+    stepContact.style.display = 'block';
+    setTimeout(() => stepContact.classList.add('active'), 50);
+
+    document.getElementById('cust-name').value = '';
+    document.getElementById('cust-email').value = '';
+    document.getElementById('cust-phone').value = '';
+    document.getElementById('cust-address').value = '';
+    document.getElementById('cust-zip').value = '';
+    document.getElementById('file-input').value = '';
+    
+    document.getElementById('file-preview').classList.add('hidden');
+    document.getElementById('drop-zone').style.display = 'block';
+
+    appState.currentStep = 1;
+    appState.fallbackPoints = [];
+    appState.formData = {
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        zip: '',
+        size: 2400,
+        material: 'asphalt',
+        pitch: 'medium',
+        stories: '1',
+        photoName: 'Default Demo House',
+        photoSize: 'N/A'
+    };
+
+    document.querySelectorAll('.progress-step').forEach(indicator => {
+        indicator.classList.remove('active', 'completed');
+    });
+    document.querySelector('.progress-step.step-1').classList.add('active');
+}
