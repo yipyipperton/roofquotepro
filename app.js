@@ -78,26 +78,15 @@ function initNavigation() {
 
 // 3. MULTI-STEP INTAKE FORM NAVIGATION
 function initIntakeForm() {
-    const btnContactNext = document.getElementById('btn-contact-next');
-    const btnMapPrev = document.getElementById('btn-map-prev');
-    const btnMapNext = document.getElementById('btn-map-next');
-    const btnSpecsPrev = document.getElementById('btn-specs-prev');
-    const btnSpecsNext = document.getElementById('btn-specs-next');
-    const btnUploadPrev = document.getElementById('btn-upload-prev');
-    const btnUploadSubmit = document.getElementById('btn-upload-submit');
-    const btnSkipPhoto = document.getElementById('btn-skip-photo');
+    const btnPropertyNext = document.getElementById('btn-property-next');
+    const btnBasicsPrev = document.getElementById('btn-basics-prev');
+    const btnBasicsNext = document.getElementById('btn-basics-next');
+    const btnContactPrev = document.getElementById('btn-contact-prev');
+    const btnContactSubmit = document.getElementById('btn-contact-submit');
 
+    const stepProperty = document.getElementById('step-property');
+    const stepBasics = document.getElementById('step-basics');
     const stepContact = document.getElementById('step-contact');
-    const stepMap = document.getElementById('step-map');
-    const stepSpecs = document.getElementById('step-specs');
-    const stepUpload = document.getElementById('step-upload');
-
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const filePreview = document.getElementById('file-preview');
-    const previewFileName = document.getElementById('preview-file-name');
-    const previewFileSize = document.getElementById('preview-file-size');
-    const btnRemoveFile = document.getElementById('btn-remove-file');
 
     function updateStepIndicator(step) {
         document.querySelectorAll('.progress-step').forEach(indicator => {
@@ -125,15 +114,13 @@ function initIntakeForm() {
     }
 
     // Step 1 -> Step 2
-    btnContactNext.addEventListener('click', () => {
-        const name = document.getElementById('cust-name').value.trim();
-        const email = document.getElementById('cust-email').value.trim();
-        const phone = document.getElementById('cust-phone').value.trim();
+    btnPropertyNext.addEventListener('click', () => {
         const address = document.getElementById('cust-address').value.trim();
         const zip = document.getElementById('cust-zip').value.trim();
+        const motivation = document.getElementById('cust-motivation').value;
 
-        if (!name || !email || !phone || !address || !zip) {
-            alert('Please fill out all contact fields, including ZIP Code.');
+        if (!address || !zip) {
+            alert('Please enter your property address and ZIP Code.');
             return;
         }
 
@@ -142,109 +129,47 @@ function initIntakeForm() {
             return;
         }
 
-        appState.formData.name = name;
-        appState.formData.email = email;
-        appState.formData.phone = phone;
         appState.formData.address = address;
         appState.formData.zip = zip;
+        appState.formData.motivation = motivation;
 
-        switchStep(stepContact, stepMap, 2);
-        loadIntakeMap(address, zip);
+        switchStep(stepProperty, stepBasics, 2);
     });
 
     // Step 2 -> Step 1/3
-    btnMapPrev.addEventListener('click', () => {
-        switchStep(stepMap, stepContact, 1);
+    btnBasicsPrev.addEventListener('click', () => {
+        switchStep(stepBasics, stepProperty, 1);
     });
 
-    btnMapNext.addEventListener('click', () => {
-        if (appState.formData.size === 0 && appState.fallbackPoints.length === 0) {
-            const proceed = confirm("No roof outline drawn. Would you like to proceed with a standard 2,400 sq ft roof estimate?");
-            if (!proceed) return;
-            appState.formData.size = 2400;
-        }
-        document.getElementById('roof-size').value = appState.formData.size;
-        switchStep(stepMap, stepSpecs, 3);
-    });
-
-    // Step 3 -> Step 2/4
-    btnSpecsPrev.addEventListener('click', () => {
-        switchStep(stepSpecs, stepMap, 2);
-    });
-
-    btnSpecsNext.addEventListener('click', () => {
-        appState.formData.size = parseInt(document.getElementById('roof-size').value) || 2400;
-        appState.formData.material = document.getElementById('roof-material').value;
-        appState.formData.pitch = document.getElementById('roof-pitch').value;
+    btnBasicsNext.addEventListener('click', () => {
         appState.formData.stories = document.getElementById('roof-stories').value;
+        appState.formData.age = document.getElementById('roof-age').value;
+        appState.formData.material = document.getElementById('roof-material').value;
 
-        switchStep(stepSpecs, stepUpload, 4);
+        switchStep(stepBasics, stepContact, 3);
     });
 
-    // Step 4 file attachments
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
+    // Step 3 -> Step 2/Submit
+    btnContactPrev.addEventListener('click', () => {
+        switchStep(stepContact, stepBasics, 2);
     });
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'));
-    });
+    btnContactSubmit.addEventListener('click', () => {
+        const name = document.getElementById('cust-name').value.trim();
+        const email = document.getElementById('cust-email').value.trim();
+        const phone = document.getElementById('cust-phone').value.trim();
 
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFileSelection(e.dataTransfer.files[0]);
+        if (!name || !email || !phone) {
+            alert('Please fill out your name, email, and phone number.');
+            return;
         }
+
+        appState.formData.name = name;
+        appState.formData.email = email;
+        appState.formData.phone = phone;
+
+        startAILoader();
     });
-
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileSelection(e.target.files[0]);
-        }
-    });
-
-    function handleFileSelection(file) {
-        appState.formData.photoName = file.name;
-        appState.formData.photoSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-        
-        previewFileName.textContent = appState.formData.photoName;
-        previewFileSize.textContent = appState.formData.photoSize;
-        
-        filePreview.classList.remove('hidden');
-        dropZone.style.display = 'none';
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('before-img-element').src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-
-    btnRemoveFile.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fileInput.value = '';
-        filePreview.classList.add('hidden');
-        dropZone.style.display = 'block';
-        appState.formData.photoName = 'Default Demo House';
-        appState.formData.photoSize = 'N/A';
-        document.getElementById('before-img-element').src = 'assets/roof_before.jpg';
-    });
-
-    btnSkipPhoto.addEventListener('click', () => {
-        appState.formData.photoName = 'Default Demo House';
-        appState.formData.photoSize = 'N/A';
-        document.getElementById('before-img-element').src = 'assets/roof_before.jpg';
-        btnUploadSubmit.click();
-    });
-
-    btnUploadPrev.addEventListener('click', () => {
-        switchStep(stepUpload, stepSpecs, 3);
-    });
-
-    btnUploadSubmit.addEventListener('click', startAILoader);
 }
 
 // 4. MAP DRAWING INTEGRATION
@@ -423,8 +348,18 @@ function startAILoader() {
 }
 
 // 6. CALCULATE COST AND SAVE LEAD ON SERVER
-function calculateQuote(size, material, pitch, stories) {
+function calculateQuote(size, material, pitch, stories, useDirectSize = false) {
     const cfg = appState.pricingConfig;
+    
+    let calculatedSize = size;
+    if (!useDirectSize) {
+        if (stories === '1') calculatedSize = 2200;
+        else if (stories === '2') calculatedSize = 3000;
+        else if (stories === '3' || stories === '3+') calculatedSize = 3800;
+        // Sync back to state size
+        appState.formData.size = calculatedSize;
+    }
+
     let baseMatRate = cfg.rateAsphalt;
     if (material === 'metal') baseMatRate = cfg.rateMetal;
     else if (material === 'slate') baseMatRate = cfg.rateSlate;
@@ -438,8 +373,15 @@ function calculateQuote(size, material, pitch, stories) {
     if (stories === '2') storyMult = cfg.mult2Story;
     else if (stories === '3') storyMult = cfg.mult3Story;
 
-    const materialsCost = size * baseMatRate * pitchMult;
-    const laborCost = size * laborRate * pitchMult * storyMult;
+    let materialsCost = calculatedSize * baseMatRate * pitchMult;
+    let laborCost = calculatedSize * laborRate * pitchMult * storyMult;
+
+    // Apply 10% deck integrity / wood replacement buffer if active leak or over 20 years old
+    if (appState.formData.motivation === 'leak' || appState.formData.age === 'old') {
+        materialsCost *= 1.10;
+        laborCost *= 1.10;
+    }
+
     const permitsFees = (materialsCost + laborCost) * 0.10;
     const totalCost = materialsCost + laborCost + permitsFees;
 
@@ -456,7 +398,7 @@ async function saveLeadAndNavigate() {
     const dashboardSection = document.getElementById('quote-dashboard');
 
     const info = appState.formData;
-    const pricing = calculateQuote(info.size, info.material, info.pitch, info.stories);
+    const pricing = calculateQuote(info.size, info.material, info.pitch, info.stories, false);
 
     // Save lead details on server
     const newLead = {
@@ -468,6 +410,8 @@ async function saveLeadAndNavigate() {
         size: info.size,
         material: info.material,
         price: pricing.total,
+        motivation: info.motivation,
+        age: info.age,
         status: 'sent',
         honeypot: document.getElementById('honeypot-field') ? document.getElementById('honeypot-field').value : ''
     };
@@ -529,7 +473,7 @@ function initRealtimeCalculator() {
 
         adjSizeVal.textContent = size.toLocaleString() + ' sq ft';
         
-        const pricing = calculateQuote(size, material, pitch, stories);
+        const pricing = calculateQuote(size, material, pitch, stories, true);
         updateDashboardPricingDisplay(pricing);
 
         const labelAfter = document.querySelector('.label-after');
@@ -602,38 +546,36 @@ function initSlider() {
 
 // 9. CLEAN RECOVERY RESET FLOW
 function resetFlow() {
-    document.getElementById('step-map').style.display = 'none';
-    document.getElementById('step-specs').style.display = 'none';
-    document.getElementById('step-upload').style.display = 'none';
+    document.getElementById('step-basics').style.display = 'none';
+    document.getElementById('step-contact').style.display = 'none';
     
-    const stepContact = document.getElementById('step-contact');
-    stepContact.style.display = 'block';
-    setTimeout(() => stepContact.classList.add('active'), 50);
+    const stepProperty = document.getElementById('step-property');
+    stepProperty.style.display = 'block';
+    setTimeout(() => stepProperty.classList.add('active'), 50);
 
+    document.getElementById('cust-address').value = '';
+    document.getElementById('cust-zip').value = '';
+    document.getElementById('cust-motivation').value = 'leak';
+    document.getElementById('roof-stories').value = '1';
+    document.getElementById('roof-age').value = 'new';
+    document.getElementById('roof-material').value = 'asphalt';
     document.getElementById('cust-name').value = '';
     document.getElementById('cust-email').value = '';
     document.getElementById('cust-phone').value = '';
-    document.getElementById('cust-address').value = '';
-    document.getElementById('cust-zip').value = '';
-    document.getElementById('file-input').value = '';
-    
-    document.getElementById('file-preview').classList.add('hidden');
-    document.getElementById('drop-zone').style.display = 'block';
 
     appState.currentStep = 1;
-    appState.fallbackPoints = [];
     appState.formData = {
         name: '',
         email: '',
         phone: '',
         address: '',
         zip: '',
-        size: 2400,
+        size: 2200,
         material: 'asphalt',
         pitch: 'medium',
         stories: '1',
-        photoName: 'Default Demo House',
-        photoSize: 'N/A'
+        motivation: 'leak',
+        age: 'new'
     };
 
     document.querySelectorAll('.progress-step').forEach(indicator => {

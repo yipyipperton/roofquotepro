@@ -55,47 +55,41 @@
                 <div class="progress-bar-container" style="max-width: 600px;">
                     <div class="progress-step step-1 active" data-step="1">
                         <span class="step-num">1</span>
-                        <span class="step-label">Contact</span>
+                        <span class="step-label">Property & Motivation</span>
                     </div>
                     <div class="progress-step step-2" data-step="2">
                         <span class="step-num">2</span>
-                        <span class="step-label">Outline</span>
+                        <span class="step-label">Home Basics</span>
                     </div>
                     <div class="progress-step step-3" data-step="3">
                         <span class="step-num">3</span>
-                        <span class="step-label">Specs</span>
-                    </div>
-                    <div class="progress-step step-4" data-step="4">
-                        <span class="step-num">4</span>
-                        <span class="step-label">Upload</span>
+                        <span class="step-label">Contact Details</span>
                     </div>
                 </div>
 
-                <!-- Step 1: Contact Details -->
-                <div class="form-step active" id="step-contact">
+                <!-- Step 1: Property Location & Motivation -->
+                <div class="form-step active" id="step-property">
                     <h2 class="step-title">Tell us where the project is</h2>
-                    <p class="step-subtitle">We use your address to pull satellite metrics and calculate local permits.</p>
+                    <p class="step-subtitle">We use your address to calculate local permits and weather averages.</p>
                     
                     <div class="form-grid">
-                        <div class="input-group">
-                            <label for="cust-name">Full Name</label>
-                            <input type="text" id="cust-name" placeholder="John Doe" required>
-                        </div>
-                        <div class="input-group">
-                            <label for="cust-email">Email Address</label>
-                            <input type="email" id="cust-email" placeholder="john@example.com" required>
-                        </div>
-                        <div class="input-group">
-                            <label for="cust-phone">Phone Number</label>
-                            <input type="tel" id="cust-phone" placeholder="(555) 000-0000" required>
+                        <div class="input-group full-width">
+                            <label for="cust-address">Street Address</label>
+                            <input type="text" id="cust-address" placeholder="5510 River Road" required>
                         </div>
                         <div class="input-group">
                             <label for="cust-zip">ZIP Code</label>
-                            <input type="text" id="cust-zip" placeholder="77044" required pattern="[0-9]{5}">
+                            <input type="text" id="cust-zip" placeholder="34652" required pattern="[0-9]{5}">
                         </div>
-                        <div class="input-group full-width">
-                            <label for="cust-address">Property Address</label>
-                            <input type="text" id="cust-address" placeholder="123 Maple Street, Houston, TX" required>
+                        <div class="input-group">
+                            <label for="cust-motivation">What is prompting your roofing project?</label>
+                            <select id="cust-motivation">
+                                <option value="leak" selected>Active Leak / Urgent Repair</option>
+                                <option value="age">Old Roof Replacement (Age/Wear)</option>
+                                <option value="damage">Storm / Wind Damage Inspection</option>
+                                <option value="pricing">General Budget Pricing (Planning)</option>
+                                <option value="selling">Preparing to Sell House</option>
+                            </select>
                         </div>
                     </div>
 
@@ -106,89 +100,19 @@
 
                     <div class="form-actions">
                         <div></div>
-                        <button type="button" class="btn btn-primary" id="btn-contact-next">
+                        <button type="button" class="btn btn-primary" id="btn-property-next">
                             Next Step
                             <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Step 2: Confirm Roof Scan -->
-                <div class="form-step" id="step-map">
-                    <h2 class="step-title">Confirm your roof boundary</h2>
-                    <p class="step-subtitle">We have scanned your property. The highlighted area below shows your automatically generated roof outline.</p>
-
-                    <div class="map-wrapper">
-                        <!-- Display-Only Google Map / Canvas Container -->
-                        <div id="map-canvas" class="map-canvas-container display-only-map">
-                            <!-- SVG Auto-Selected Roof Polygon for Demo Mode -->
-                            <svg viewBox="0 0 400 300" class="demo-auto-polygon-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 10;">
-                                <polygon points="110,85 290,70 310,205 130,220" fill="rgba(99, 102, 241, 0.22)" stroke="#6366f1" stroke-width="3" />
-                            </svg>
-                            <!-- SVG Center Pin Overlay for Demo Mode -->
-                            <div class="map-center-pin-overlay" id="map-pin">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-pin" style="width: 38px; height: 38px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                    <circle cx="12" cy="10" r="3" fill="#ef4444"/>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Automatic Scan Status Badge -->
-                    <div class="scan-status-badge">
-                        <svg class="scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: var(--accent); margin-right: 0.5rem; flex-shrink: 0;">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <span>Roof boundary outlined successfully (Est. 2,400 sq ft)</span>
-                    </div>
-
-                    <div class="form-actions" id="map-actions-row">
-                        <button type="button" class="btn btn-secondary" id="btn-map-prev">
-                            <svg class="icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                            Back
-                        </button>
-                        <button type="button" class="btn btn-primary" id="btn-map-next">
-                            Confirm & Next
-                            <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Step 3: Roof Specifications -->
-                <div class="form-step" id="step-specs">
-                    <h2 class="step-title">Specify your roof parameters</h2>
-                    <p class="step-subtitle">Adjust the calculated roof size or select materials and pitch details.</p>
+                <!-- Step 2: Home Basics & Material -->
+                <div class="form-step" id="step-basics">
+                    <h2 class="step-title">Specify your home parameters</h2>
+                    <p class="step-subtitle">Tell us about the roof's height, age, and preferred style.</p>
 
                     <div class="form-grid">
-                        <div class="input-group">
-                            <label for="roof-size">Estimated Roof Size (Sq Ft)</label>
-                            <div class="input-with-unit">
-                                <input type="number" id="roof-size" value="2400" min="500" max="10000" step="100">
-                                <span class="input-unit">sq ft</span>
-                            </div>
-                            <span class="helper-text">Average home is 2,000 - 3,000 sq ft.</span>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="roof-material">Preferred Shingle / Material</label>
-                            <select id="roof-material">
-                                <option value="asphalt" selected>Premium Architectural Asphalt (Standard)</option>
-                                <option value="metal">Modern Standing-Seam Metal (Premium)</option>
-                                <option value="slate">Designer Slate / Clay Tiles (Luxury)</option>
-                            </select>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="roof-pitch">Roof Pitch / Slope</label>
-                            <select id="roof-pitch">
-                                <option value="flat">Flat or Low Slope (Walkable)</option>
-                                <option value="medium" selected>Medium Slope (Standard Pitch)</option>
-                                <option value="steep">Steep Pitch (Requires safety rigging)</option>
-                            </select>
-                        </div>
-
                         <div class="input-group">
                             <label for="roof-stories">Building Stories</label>
                             <select id="roof-stories">
@@ -197,66 +121,67 @@
                                 <option value="3">3+ Stories</option>
                             </select>
                         </div>
+
+                        <div class="input-group">
+                            <label for="roof-age">Approximate Roof Age</label>
+                            <select id="roof-age">
+                                <option value="new" selected>Under 10 Years</option>
+                                <option value="mid">10 to 20 Years</option>
+                                <option value="old">Over 20 Years</option>
+                                <option value="unknown">I do not know</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group full-width">
+                            <label for="roof-material">Preferred Material Style</label>
+                            <select id="roof-material">
+                                <option value="asphalt" selected>Traditional Architectural Asphalt Shingles (Standard)</option>
+                                <option value="metal">Modern Standing-Seam Metal (Premium)</option>
+                                <option value="slate">Designer Slate / Spanish Clay Tiles (Luxury)</option>
+                                <option value="undecided">Not Sure / Help me choose</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="btn-specs-prev">
+                        <button type="button" class="btn btn-secondary" id="btn-basics-prev">
                             <svg class="icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                             Back
                         </button>
-                        <button type="button" class="btn btn-primary" id="btn-specs-next">
+                        <button type="button" class="btn btn-primary" id="btn-basics-next">
                             Next Step
                             <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Step 4: Photo Upload -->
-                <div class="form-step" id="step-upload">
-                    <h2 class="step-title">Upload a photo of your house</h2>
-                    <p class="step-subtitle">Our AI uses this to analyze current roof wear and generate your 3D transformation visualizer.</p>
+                <!-- Step 3: Contact Details -->
+                <div class="form-step" id="step-contact">
+                    <h2 class="step-title">Where should we send your preliminary report?</h2>
+                    <p class="step-subtitle">We will calculate your budget range and send your pricing estimate sheet.</p>
 
-                    <div class="upload-area" id="drop-zone">
-                        <input type="file" id="file-input" accept="image/*" class="file-input-hidden">
-                        <div class="upload-icon-container">
-                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="17 8 12 3 7 8"/>
-                                <line x1="12" y1="3" x2="12" y2="15"/>
-                            </svg>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="cust-name">Full Name</label>
+                            <input type="text" id="cust-name" placeholder="John Doe" required>
                         </div>
-                        <div class="upload-text">
-                            <span class="upload-highlight">Click to upload</span> or drag and drop
-                            <p class="upload-subtext">PNG, JPG, or WEBP (Max 10MB)</p>
+                        <div class="input-group">
+                            <label for="cust-email">Email Address</label>
+                            <input type="email" id="cust-email" placeholder="john@example.com" required>
                         </div>
-                    </div>
-
-                    <!-- Selected File Preview -->
-                    <div class="file-preview-card hidden" id="file-preview">
-                        <div class="preview-info">
-                            <svg class="icon-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                            <div class="preview-details">
-                                <span class="file-name" id="preview-file-name">my_roof.jpg</span>
-                                <span class="file-size" id="preview-file-size">1.2 MB</span>
-                            </div>
+                        <div class="input-group full-width">
+                            <label for="cust-phone">Phone Number</label>
+                            <input type="tel" id="cust-phone" placeholder="(727) 808-4646" required>
                         </div>
-                        <button type="button" class="btn-remove-file" id="btn-remove-file">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                    </div>
-
-                    <!-- Fast Track Link if they don't have a photo -->
-                    <div class="fast-track-container">
-                        <button type="button" class="btn-text" id="btn-skip-photo">Or, use our pre-loaded demo house photo</button>
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="btn-upload-prev">
+                        <button type="button" class="btn btn-secondary" id="btn-contact-prev">
                             <svg class="icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                             Back
                         </button>
-                        <button type="button" class="btn btn-primary btn-cta-main" id="btn-upload-submit">
-                            Generate My AI Quote
+                        <button type="button" class="btn btn-primary btn-cta-main" id="btn-contact-submit">
+                            Generate My Estimate
                             <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
                         </button>
                     </div>
@@ -403,7 +328,7 @@
                             <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
-                            <p>Visualizer simulates brand new architectural shingle layout on your specific roof pitch based on geometric analysis of the uploaded picture.</p>
+                            <p>Visualizer simulates a completed shingle replacement using Charcoal gray architectural shingles.</p>
                         </div>
                     </div>
                 </div>

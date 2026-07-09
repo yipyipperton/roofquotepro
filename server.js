@@ -256,6 +256,14 @@ async function sendResendEmails(settings, lead) {
                         <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; text-transform: capitalize;">${lead.material}</td>
                     </tr>
                     <tr>
+                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Motivation</td>
+                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; text-transform: capitalize;">${lead.motivation || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Roof Age</td>
+                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; text-transform: capitalize;">${lead.age || 'N/A'}</td>
+                    </tr>
+                    <tr>
                         <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Estimate Total</td>
                         <td style="padding: 10px 0; font-weight: bold; color: #10b981; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; font-size: 16px;">$${formattedPrice}</td>
                     </tr>
