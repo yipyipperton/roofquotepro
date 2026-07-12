@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // Load local .env file securely if present (excluded from Git tracking)
 const envPath = path.join(__dirname, '.env');
@@ -178,107 +179,344 @@ function readJsonBody(req, callback) {
 }
 
 // Helper to send emails using Resend REST API
-async function sendResendEmails(settings, lead) {
+// Helper to calculate quote securely on the backend mirroring the frontend pricing/margin logic
+function backendCalculateQuote(settings, lead) {
+    const size = parseInt(lead.size) || 2200;
+    const material = lead.material || 'asphalt';
+    const stories = lead.stories || '1';
+    const motivation = lead.motivation || 'pricing';
+    const age = lead.age || 'new';
+
+    let baseMatRate = parseFloat(settings.rateAsphalt) || 1.50;
+    if (material === 'metal') baseMatRate = parseFloat(settings.rateMetal) || 3.20;
+    else if (material === 'slate') baseMatRate = parseFloat(settings.rateSlate) || 5.80;
+
+    const laborRate = parseFloat(settings.rateInstall) || 1.75;
+
+    // Pitch fallback (standard pitch mult = 1.0)
+    let pitchMult = 1.0;
+
+    let storyMult = 1.0;
+    if (stories === '2') storyMult = parseFloat(settings.mult2Story) || 1.20;
+    else if (stories === '3' || stories === '3+') storyMult = parseFloat(settings.mult3Story) || 1.40;
+
+    let materialsCost = size * baseMatRate * pitchMult;
+    let laborCost = size * laborRate * pitchMult * storyMult;
+
+    // Apply 10% deck integrity/wood replacement buffer if active leak or over 20 years old
+    if (motivation === 'leak' || age === 'old') {
+        materialsCost *= 1.10;
+        laborCost *= 1.10;
+    }
+
+    const permitsFees = (materialsCost + laborCost) * 0.10;
+    const totalCost = materialsCost + laborCost + permitsFees;
+
+    return {
+        materials: Math.round(materialsCost),
+        labor: Math.round(laborCost),
+        fees: Math.round(permitsFees),
+        total: Math.round(totalCost)
+    };
+}
+
+// Helper to draw text with word wrap in pdf-lib (coordinates start bottom-left)
+function drawWrappedText(page, text, x, y, width, font, size, color) {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+    for (let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let testWidth = font.widthOfTextAtSize(testLine, size);
+        if (testWidth > width && n > 0) {
+            page.drawText(line.trim(), { x, y: currentY, size, font, color });
+            line = words[n] + ' ';
+            currentY -= (size * 1.4);
+        } else {
+            line = testLine;
+        }
+    }
+    page.drawText(line.trim(), { x, y: currentY, size, font, color });
+    return currentY - (size * 1.4);
+}
+
+// Generate the beautiful, detailed budget estimate PDF using pdf-lib
+async function generateEstimatePDF(settings, lead) {
+    const pdfDoc = await PDFDocument.create();
+    
+    // Standard built-in Helvetica fonts
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    
+    const page = pdfDoc.addPage([612, 792]); // Letter size (8.5 x 11 inches)
+    const { width, height } = page.getSize();
+    
+    const pricing = backendCalculateQuote(settings, lead);
+    const minPrice = Math.round(pricing.total * 0.95);
+    const maxPrice = Math.round(pricing.total * 1.05);
+
+    // Color scheme
+    const primaryColor = rgb(0.09, 0.15, 0.27); // #172554 (dark navy)
+    const accentColor = rgb(0.38, 0.40, 0.94);  // #6366f1 (indigo)
+    const grayColor = rgb(0.40, 0.45, 0.55);    // slate/gray
+    const greenColor = rgb(0.06, 0.70, 0.45);   // emerald/green
+    const redColor = rgb(0.93, 0.27, 0.27);     // warning red
+    const bgLightColor = rgb(0.96, 0.97, 0.99);  // light card bg
+    const borderLightColor = rgb(0.88, 0.90, 0.93); // light border
+
+    // Title / Brand
+    page.drawText('ROOFQUOTE AI', {
+        x: 50,
+        y: 730,
+        size: 22,
+        font: helveticaBold,
+        color: accentColor
+    });
+
+    page.drawText('Instant Satellite Estimate Report', {
+        x: 50,
+        y: 715,
+        size: 10,
+        font: helveticaOblique,
+        color: grayColor
+    });
+
+    // Metadata
+    const dateStr = lead.date || new Date().toISOString().split('T')[0];
+    const estimateId = `RQ-${Math.floor(100000 + Math.random() * 900000)}`;
+    
+    page.drawText(`Estimate ID: ${estimateId}`, {
+        x: 420,
+        y: 730,
+        size: 10,
+        font: helveticaBold,
+        color: primaryColor
+    });
+
+    page.drawText(`Date: ${dateStr}`, {
+        x: 420,
+        y: 715,
+        size: 10,
+        font: helveticaFont,
+        color: grayColor
+    });
+
+    // Divider Line
+    page.drawLine({
+        start: { x: 50, y: 700 },
+        end: { x: 562, y: 700 },
+        thickness: 1,
+        color: borderLightColor
+    });
+
+    // Customer & Property
+    page.drawText('CUSTOMER & PROPERTY DETAILS', {
+        x: 50,
+        y: 675,
+        size: 11,
+        font: helveticaBold,
+        color: primaryColor
+    });
+
+    page.drawText('Name:', { x: 50, y: 655, size: 10, font: helveticaBold, color: primaryColor });
+    page.drawText(lead.name, { x: 130, y: 655, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Address:', { x: 50, y: 635, size: 10, font: helveticaBold, color: primaryColor });
+    page.drawText(lead.address, { x: 130, y: 635, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Email:', { x: 50, y: 615, size: 10, font: helveticaBold, color: primaryColor });
+    page.drawText(lead.email, { x: 130, y: 615, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Phone:', { x: 340, y: 615, size: 10, font: helveticaBold, color: primaryColor });
+    page.drawText(lead.phone, { x: 390, y: 615, size: 10, font: helveticaFont, color: primaryColor });
+
+    // Divider Line
+    page.drawLine({
+        start: { x: 50, y: 595 },
+        end: { x: 562, y: 595 },
+        thickness: 1,
+        color: borderLightColor
+    });
+
+    // Project specs
+    page.drawText('PROJECT SPECIFICATIONS', {
+        x: 50,
+        y: 575,
+        size: 11,
+        font: helveticaBold,
+        color: primaryColor
+    });
+
+    page.drawText('Stories:', { x: 50, y: 555, size: 10, font: helveticaBold, color: primaryColor });
+    page.drawText(`${lead.stories || '1'} Story`, { x: 150, y: 555, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Material Style:', { x: 50, y: 535, size: 10, font: helveticaBold, color: primaryColor });
+    const matLabel = lead.material === 'metal' ? 'Standing-Seam Metal' : lead.material === 'slate' ? 'Slate / Clay Tile' : 'Architectural Asphalt';
+    page.drawText(matLabel, { x: 150, y: 535, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Calculated Area:', { x: 50, y: 515, size: 10, font: helveticaBold, color: primaryColor });
+    page.drawText(`${(parseInt(lead.size) || 2200).toLocaleString()} sq ft`, { x: 150, y: 515, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Approx. Roof Age:', { x: 340, y: 555, size: 10, font: helveticaBold, color: primaryColor });
+    const ageLabel = lead.age === 'old' ? '20+ Years (Critical)' : lead.age === 'mid' ? '10-20 Years' : lead.age === 'new' ? 'Under 10 Years' : 'Unknown';
+    page.drawText(ageLabel, { x: 440, y: 555, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Motivation:', { x: 340, y: 535, size: 10, font: helveticaBold, color: primaryColor });
+    const motLabel = lead.motivation === 'leak' ? 'Active Leak / Repair' : lead.motivation === 'damage' ? 'Storm Damage' : 'General Quote';
+    page.drawText(motLabel, { x: 440, y: 535, size: 10, font: helveticaFont, color: primaryColor });
+
+    // Budget range box
+    page.drawRectangle({
+        x: 50,
+        y: 400,
+        width: 512,
+        height: 85,
+        color: bgLightColor,
+        borderColor: borderLightColor,
+        borderWidth: 1
+    });
+
+    page.drawText('ESTIMATED INSTALLED TOTAL BUDGET RANGE', {
+        x: 70,
+        y: 460,
+        size: 9,
+        font: helveticaBold,
+        color: grayColor
+    });
+
+    page.drawText(`$${minPrice.toLocaleString()} - $${maxPrice.toLocaleString()}`, {
+        x: 70,
+        y: 425,
+        size: 26,
+        font: helveticaBold,
+        color: greenColor
+    });
+
+    page.drawText('*This is a preliminary budget estimate. Standard material pricing and labor are included.', {
+        x: 70,
+        y: 410,
+        size: 7.5,
+        font: helveticaOblique,
+        color: grayColor
+    });
+
+    // Detailed Breakdown
+    page.drawText('ESTIMATED COST BREAKDOWN', {
+        x: 50,
+        y: 365,
+        size: 11,
+        font: helveticaBold,
+        color: primaryColor
+    });
+
+    page.drawText('Premium Materials', { x: 50, y: 345, size: 10, font: helveticaFont, color: primaryColor });
+    page.drawText(`$${pricing.materials.toLocaleString()}`, { x: 480, y: 345, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Professional Installation & Safety Setup', { x: 50, y: 325, size: 10, font: helveticaFont, color: primaryColor });
+    page.drawText(`$${pricing.labor.toLocaleString()}`, { x: 480, y: 325, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Permits, Debris Removal & Disposal', { x: 50, y: 305, size: 10, font: helveticaFont, color: primaryColor });
+    page.drawText(`$${pricing.fees.toLocaleString()}`, { x: 480, y: 305, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawLine({
+        start: { x: 50, y: 295 },
+        end: { x: 562, y: 295 },
+        thickness: 1,
+        color: borderLightColor
+    });
+
+    page.drawText('Estimated Total', { x: 50, y: 280, size: 11, font: helveticaBold, color: primaryColor });
+    page.drawText(`$${pricing.total.toLocaleString()}`, { x: 480, y: 280, size: 11, font: helveticaBold, color: primaryColor });
+
+    // Warnings and alarms
+    let currentY = 240;
+    
+    if (lead.motivation === 'leak' || lead.age === 'old') {
+        page.drawText('CRITICAL ALERTS & RECOMMENDATIONS', {
+            x: 50,
+            y: currentY,
+            size: 10,
+            font: helveticaBold,
+            color: redColor
+        });
+        currentY -= 15;
+
+        if (lead.motivation === 'leak') {
+            const warningText = 'WARNING - ACTIVE LEAK DETECTED: This property has been flagged for active water intrusion. We strongly recommend scheduling an immediate physical assessment. Any rotted roof decking (plywood) must be replaced prior to dry-in and shingle application to prevent structural failure.';
+            currentY = drawWrappedText(page, warningText, 50, currentY, 512, helveticaOblique, 8.5, redColor);
+            currentY -= 10;
+        }
+
+        if (lead.age === 'old') {
+            const warningText = 'WARNING - OLD ROOF ALERT (20+ YEARS): Roof covers older than 20 years frequently present hidden deck rot and lack code-compliant ice & water barrier underlayment. In-person assessment is highly recommended to identify local permit requirements.';
+            currentY = drawWrappedText(page, warningText, 50, currentY, 512, helveticaOblique, 8.5, redColor);
+            currentY -= 10;
+        }
+    }
+
+    page.drawLine({
+        start: { x: 50, y: 100 },
+        end: { x: 562, y: 100 },
+        thickness: 1,
+        color: borderLightColor
+    });
+
+    page.drawText('To lock in this estimate, please contact us for a free physical roof inspection.', {
+        x: 50,
+        y: 85,
+        size: 9.5,
+        font: helveticaBold,
+        color: accentColor
+    });
+
+    page.drawText(`Contractor Contact: ${settings.contractorEmail || 'isaaqabukar1@gmail.com'}`, {
+        x: 50,
+        y: 70,
+        size: 8.5,
+        font: helveticaFont,
+        color: grayColor
+    });
+
+    page.drawText('RoofQuote AI SwaS Platform - Estimate generated automatically from satellite characteristics.', {
+        x: 50,
+        y: 55,
+        size: 7.5,
+        font: helveticaFont,
+        color: grayColor
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+}
+
+// 1. Homeowner Immediate Receipt Email
+async function sendHomeownerReceiptEmail(settings, lead) {
     if (!settings.resendApiKey || settings.resendApiKey.trim() === '') {
-        console.log('Skipping email dispatch: No Resend API key configured.');
+        console.log('Skipping homeowner receipt email: No Resend API key configured.');
         return;
     }
 
-    const minPrice = Math.round(lead.price * 0.95).toLocaleString();
-    const maxPrice = Math.round(lead.price * 1.05).toLocaleString();
-    const formattedPrice = lead.price.toLocaleString();
-
-    // 1. Email to Homeowner
     const homeownerBody = {
         from: 'RoofQuote AI <onboarding@resend.dev>',
         to: [lead.email],
-        subject: `Your Instant Roof Estimate Range: $${minPrice} - $${maxPrice}`,
+        subject: `Estimate request received for ${lead.address}`,
         html: `
             <div style="font-family: sans-serif; background-color: #070a13; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <h1 style="color: #6366f1; font-size: 26px; font-weight: 700; margin-bottom: 1.25rem;">RoofQuote AI Estimate</h1>
+                <h1 style="color: #6366f1; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">Estimate Request Received</h1>
                 <p style="font-size: 15px; color: #f8fafc; line-height: 1.6;">Hello ${lead.name},</p>
-                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Thank you for requesting an instant estimate. Based on your satellite outline of <strong>${lead.size.toLocaleString()} sq ft</strong>, here is your estimated pricing range:</p>
-                
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 2rem; border-radius: 12px; text-align: center; margin: 2rem 0; box-shadow: inset 0 2px 4px rgba(255,255,255,0.02);">
-                    <span style="font-size: 12px; text-transform: uppercase; color: #94a3b8; display: block; font-weight: 600; letter-spacing: 0.05em;">Estimated Installed Total</span>
-                    <strong style="font-size: 36px; color: #10b981; display: block; margin-top: 0.5rem; text-shadow: 0 0 15px rgba(16, 185, 129, 0.25);">$${minPrice} - $${maxPrice}</strong>
-                </div>
-
-                <h3 style="color: #f8fafc; font-size: 16px; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">Project Parameters:</h3>
-                <ul style="color: #94a3b8; padding-left: 1.25rem; font-size: 14px; line-height: 1.6;">
-                    <li>Property Address: <strong>${lead.address}</strong></li>
-                    <li>Selected Shingles: <strong>${lead.material.toUpperCase()}</strong></li>
-                    <li>Calculated Area: <strong>${lead.size.toLocaleString()} sq ft</strong></li>
-                </ul>
-
-                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">This is an automated estimate calculated with localized material averages. Final quote is subject to in-person structural slope verification.</p>
-                
-                <div style="text-align: center; margin-top: 2.25rem;">
-                    <a href="mailto:${settings.contractorEmail || 'sales@roofing.com'}" style="background-color: #6366f1; color: white; padding: 0.85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);">Schedule Free Inspection</a>
-                </div>
-            </div>
-        `
-    };
-
-    // 2. Email to Contractor
-    const contractorBody = {
-        from: 'RoofQuote AI <onboarding@resend.dev>',
-        to: [settings.contractorEmail || lead.email],
-        subject: `🚨 NEW LEAD: ${lead.name} - $${formattedPrice}`,
-        html: `
-            <div style="font-family: sans-serif; background-color: #070a13; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <h1 style="color: #ef4444; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">🚨 New Lead Alert</h1>
-                <p style="font-size: 15px; color: #94a3b8;">A new customer has generated a satellite estimate range on your site.</p>
-                
-                <table style="width: 100%; border-collapse: collapse; margin: 2rem 0; color: #94a3b8; font-size: 14px;">
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Name</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${lead.name}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Email</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;"><a href="mailto:${lead.email}" style="color: #6366f1; text-decoration: none;">${lead.email}</a></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Phone</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;"><a href="tel:${lead.phone}" style="color: #6366f1; text-decoration: none;">${lead.phone}</a></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Address</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${lead.address}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Calculated Size</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${lead.size.toLocaleString()} sq ft</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Material</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; text-transform: capitalize;">${lead.material}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Motivation</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; text-transform: capitalize;">${lead.motivation || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Roof Age</td>
-                        <td style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; text-transform: capitalize;">${lead.age || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px 0; font-weight: bold; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.05);">Estimate Total</td>
-                        <td style="padding: 10px 0; font-weight: bold; color: #10b981; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; font-size: 16px;">$${formattedPrice}</td>
-                    </tr>
-                </table>
-
-                <div style="text-align: center; margin-top: 1.5rem;">
-                    <a href="tel:${lead.phone}" style="background-color: #10b981; color: #070a13; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">Call Lead Immediately</a>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">We have successfully received your roofing estimate request for <strong>${lead.address}</strong>.</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Our team is generating your detailed satellite analysis report. You will receive a follow-up email shortly containing your preliminary budget breakdown PDF.</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">A local roofing specialist from our network will also review your parameters and be in touch shortly to assist you.</p>
+                <div style="text-align: center; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+                    <span style="font-size: 12px; color: #64748b;">Powered by RoofQuote AI SwaS Pipeline</span>
                 </div>
             </div>
         `
     };
 
     try {
-        // Send homeowner email
-        const userRes = await fetch('https://api.resend.com/emails', {
+        const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${settings.resendApiKey}`,
@@ -286,9 +524,163 @@ async function sendResendEmails(settings, lead) {
             },
             body: JSON.stringify(homeownerBody)
         });
+        if (!res.ok) {
+            console.error('Resend returned error for receipt email:', res.status);
+        }
+    } catch (e) {
+        console.error('Error sending receipt email:', e);
+    }
+}
 
-        // Send contractor alert email
-        const adminRes = await fetch('https://api.resend.com/emails', {
+// 2. Homeowner PDF Estimate Email (with PDF attachment)
+async function sendHomeownerPdfEmail(settings, lead, pdfBuffer) {
+    if (!settings.resendApiKey || settings.resendApiKey.trim() === '') {
+        console.log('Skipping homeowner PDF email: No Resend API key configured.');
+        return;
+    }
+
+    const homeownerBody = {
+        from: 'RoofQuote AI <onboarding@resend.dev>',
+        to: [lead.email],
+        subject: `Your Satellite Roof Estimate Report for ${lead.address}`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #070a13; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <h1 style="color: #10b981; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">Your Estimate Report is Ready!</h1>
+                <p style="font-size: 15px; color: #f8fafc; line-height: 1.6;">Hello ${lead.name},</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Your automated satellite estimate for the property at <strong>${lead.address}</strong> is complete.</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">We have attached a detailed PDF report containing your custom pricing breakdown, safety margins, and permit budget configurations.</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Please review the attached PDF document. To schedule a free, in-person inspection and lock in your price, you can reply directly to this email or contact us at <a href="mailto:${settings.contractorEmail || 'isaaqabukar1@gmail.com'}" style="color: #6366f1; text-decoration: none;">${settings.contractorEmail || 'isaaqabukar1@gmail.com'}</a>.</p>
+                <div style="text-align: center; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+                    <span style="font-size: 12px; color: #64748b;">Please see the attached PDF for details.</span>
+                </div>
+            </div>
+        `,
+        attachments: pdfBuffer ? [
+            {
+                filename: `RoofQuote_Estimate_${lead.address.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+                content: pdfBuffer.toString('base64')
+            }
+        ] : []
+    };
+
+    try {
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${settings.resendApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(homeownerBody)
+        });
+        if (!res.ok) {
+            console.error('Resend returned error for homeowner PDF email:', res.status);
+        }
+    } catch (e) {
+        console.error('Error sending homeowner PDF email:', e);
+    }
+}
+
+// 3. Contractor Lead Notification Email (Highly Scannable, 10-second read)
+async function sendContractorAlertEmail(settings, lead, pricing) {
+    if (!settings.resendApiKey || settings.resendApiKey.trim() === '') {
+        console.log('Skipping contractor lead email: No Resend API key configured.');
+        return;
+    }
+
+    const contractorBody = {
+        from: 'RoofQuote AI <onboarding@resend.dev>',
+        to: [settings.contractorEmail || 'isaaqabukar1@gmail.com'],
+        subject: `🚨 NEW LEAD: ${lead.name} - ${lead.address}`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #090d16; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 2px solid #ef4444; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.15);">
+                <h1 style="color: #ef4444; font-size: 24px; font-weight: 800; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">🚨 New Lead Dispatch</h1>
+                <p style="font-size: 14px; color: #94a3b8; margin-top: 0;">An estimate was generated. Review context below in under 10 seconds.</p>
+
+                <!-- Urgency Alerts -->
+                ${lead.motivation === 'leak' ? `
+                <div style="background-color: rgba(239,68,68,0.1); border: 1px solid #ef4444; color: #fca5a5; padding: 1rem; border-radius: 8px; margin: 1.5rem 0 1rem 0; font-weight: bold; font-size: 13px;">
+                    ⚠️ URGENT: CUSTOMER REPORTED ACTIVE ROOF LEAK. Immediate call-back recommended to secure inspection.
+                </div>` : ''}
+                ${lead.age === 'old' ? `
+                <div style="background-color: rgba(245,158,11,0.1); border: 1px solid #f59e0b; color: #fde047; padding: 1rem; border-radius: 8px; margin: 0.5rem 0 1.5rem 0; font-weight: bold; font-size: 13px;">
+                    ⚠️ NOTICE: ROOF IS 20+ YEARS OLD. Likely requires full decking replacement.
+                </div>` : ''}
+
+                <div style="background-color: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+                    <h2 style="font-size: 16px; color: #f8fafc; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Homeowner Info</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600; width: 40%;">Name:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">${lead.name}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Phone:</td>
+                            <td style="padding: 8px 0; color: #38bdf8; font-weight: 700;"><a href="tel:${lead.phone}" style="color: #38bdf8; text-decoration: none;">${lead.phone}</a></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Email:</td>
+                            <td style="padding: 8px 0; color: #6366f1; font-weight: 700;"><a href="mailto:${lead.email}" style="color: #6366f1; text-decoration: none;">${lead.email}</a></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Address:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">${lead.address}</td>
+                        </tr>
+                    </table>
+
+                    <h2 style="font-size: 16px; color: #f8fafc; margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Roof Characteristics</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600; width: 40%;">Height / Stories:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">${lead.stories || '1'} Story</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Selected Material:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700; text-transform: capitalize;">${lead.material}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Calculated Area:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">${(parseInt(lead.size) || 2200).toLocaleString()} sq ft</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Approx. Roof Age:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700; text-transform: capitalize;">${lead.age || 'N/A'}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Motivation:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700; text-transform: capitalize;">${lead.motivation || 'N/A'}</td>
+                        </tr>
+                    </table>
+
+                    <h2 style="font-size: 16px; color: #f8fafc; margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Calculated Bid Estimate</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600; width: 40%;">Materials Bid:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">$${pricing.materials.toLocaleString()}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Labor Bid:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">$${pricing.labor.toLocaleString()}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Permits & Fees:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">$${pricing.fees.toLocaleString()}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0 0 0; color: #f8fafc; font-weight: 800; font-size: 16px;">Estimated Total:</td>
+                            <td style="padding: 12px 0 0 0; color: #10b981; font-weight: 800; font-size: 18px;">$${pricing.total.toLocaleString()}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <a href="tel:${lead.phone}" style="background-color: #ef4444; color: white; padding: 0.95rem 2.25rem; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">📞 Call Lead Immediately</a>
+                </div>
+            </div>
+        `
+    };
+
+    try {
+        const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${settings.resendApiKey}`,
@@ -296,15 +688,44 @@ async function sendResendEmails(settings, lead) {
             },
             body: JSON.stringify(contractorBody)
         });
-
-        if (userRes.ok && adminRes.ok) {
-            console.log('Resend emails successfully dispatched.');
-        } else {
-            console.error('Resend API returned error:', userRes.status, adminRes.status);
+        if (!res.ok) {
+            console.error('Resend returned error for contractor alert email:', res.status);
         }
     } catch (e) {
-        console.error('Error dispatching emails via Resend:', e);
+        console.error('Error sending contractor alert email:', e);
     }
+}
+
+// Background SwaS Lead processing pipeline wrapper
+function processLeadNotifications(settings, lead) {
+    setImmediate(async () => {
+        try {
+            console.log(`Processing SwaS lead notifications for: ${lead.email}`);
+            
+            // 1. Send immediate receipt confirmation email to homeowner
+            await sendHomeownerReceiptEmail(settings, lead);
+
+            // 2. Send contractor alert email
+            const pricing = backendCalculateQuote(settings, lead);
+            await sendContractorAlertEmail(settings, lead, pricing);
+
+            // 3. Generate PDF estimate
+            console.log('Generating estimate PDF...');
+            let pdfBuffer = null;
+            try {
+                pdfBuffer = await generateEstimatePDF(settings, lead);
+            } catch (pdfErr) {
+                console.error('PDF Generation failed, skipping attachment:', pdfErr);
+            }
+
+            // 4. Send PDF estimate email to homeowner (with attachment if generated successfully)
+            await sendHomeownerPdfEmail(settings, lead, pdfBuffer);
+
+            console.log('SwaS lead notifications processing completed successfully.');
+        } catch (pipelineErr) {
+            console.error('Critical error in lead notification pipeline:', pipelineErr);
+        }
+    });
 }
 
 const server = http.createServer((req, res) => {
@@ -426,10 +847,12 @@ const server = http.createServer((req, res) => {
                         return;
                     }
 
-                    // Trigger async email alerts via Resend REST API in background
+                    // Trigger async SwaS lead notifications in the background
                     readSettings((err, settings) => {
                         if (!err && settings) {
-                            sendResendEmails(settings, newLead);
+                            processLeadNotifications(settings, newLead);
+                        } else {
+                            console.error('Could not load settings for SwaS lead pipeline:', err);
                         }
                     });
 

@@ -400,7 +400,6 @@ async function saveLeadAndNavigate() {
     const info = appState.formData;
     const pricing = calculateQuote(info.size, info.material, info.pitch, info.stories, false);
 
-    // Save lead details on server
     const newLead = {
         date: new Date().toISOString().split('T')[0],
         name: info.name,
@@ -412,6 +411,7 @@ async function saveLeadAndNavigate() {
         price: pricing.total,
         motivation: info.motivation,
         age: info.age,
+        stories: info.stories,
         status: 'sent',
         honeypot: document.getElementById('honeypot-field') ? document.getElementById('honeypot-field').value : ''
     };
