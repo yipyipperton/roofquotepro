@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const bcrypt = require('bcryptjs');
 
 // Load local .env file securely if present (excluded from Git tracking)
 const envPath = path.join(__dirname, '.env');
@@ -54,6 +55,41 @@ function isRateLimited(ip) {
     return rateData.count > maxSubmissions;
 }
 
+// IP-based Rate Limiter for Administrator logins (Prevent brute force password guessing)
+const loginFailures = new Map();
+
+function isLoginRateLimited(ip) {
+    const now = Date.now();
+    if (loginFailures.has(ip)) {
+        const record = loginFailures.get(ip);
+        if (record.lockoutUntil && record.lockoutUntil > now) {
+            return true;
+        }
+        if (record.lockoutUntil && record.lockoutUntil <= now) {
+            // Lockout expired
+            loginFailures.delete(ip);
+        }
+    }
+    return false;
+}
+
+function recordLoginFailure(ip) {
+    const now = Date.now();
+    if (!loginFailures.has(ip)) {
+        loginFailures.set(ip, { count: 1, lockoutUntil: null });
+    } else {
+        const record = loginFailures.get(ip);
+        record.count += 1;
+        if (record.count >= 5) {
+            record.lockoutUntil = now + 15 * 60 * 1000; // 15 minutes lockout
+        }
+    }
+}
+
+function clearLoginFailures(ip) {
+    loginFailures.delete(ip);
+}
+
 const MIME_TYPES = {
     '.html': 'text/html',
     '.css': 'text/css',
@@ -90,9 +126,36 @@ if (!fs.existsSync(SETTINGS_FILE)) {
         gmapsApiKey: "",
         resendApiKey: "",
         contractorEmail: "",
+        adminUsername: "admin",
         adminPassword: "pizzas778"
     };
+    const salt = bcrypt.genSaltSync(10);
+    defaultSettings.adminPassword = bcrypt.hashSync(defaultSettings.adminPassword, salt);
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(defaultSettings, null, 2));
+} else {
+    try {
+        const currentData = fs.readFileSync(SETTINGS_FILE, 'utf8');
+        const currentSettings = JSON.parse(currentData);
+        let modified = false;
+
+        if (!currentSettings.adminUsername) {
+            currentSettings.adminUsername = "admin";
+            modified = true;
+        }
+
+        if (currentSettings.adminPassword && !currentSettings.adminPassword.startsWith('$2a$') && !currentSettings.adminPassword.startsWith('$2b$')) {
+            const salt = bcrypt.genSaltSync(10);
+            currentSettings.adminPassword = bcrypt.hashSync(currentSettings.adminPassword, salt);
+            modified = true;
+        }
+
+        if (modified) {
+            fs.writeFileSync(SETTINGS_FILE, JSON.stringify(currentSettings, null, 2));
+            console.log('Successfully hashed settings password and initialized username.');
+        }
+    } catch (err) {
+        console.error('Failed to auto-hash database credentials on startup:', err);
+    }
 }
 
 // Helper to read settings securely with process.env overrides and obfuscated secure fallbacks
@@ -761,6 +824,13 @@ function processLeadNotifications(settings, lead) {
 }
 
 const server = http.createServer((req, res) => {
+    // Enforce HTTPS redirection in production on Render using reverse proxy headers
+    if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] === 'http') {
+        res.writeHead(301, { 'Location': 'https://' + req.headers.host + req.url });
+        res.end();
+        return;
+    }
+
     const urlPath = req.url.split('?')[0];
     const method = req.method;
 
@@ -768,12 +838,32 @@ const server = http.createServer((req, res) => {
 
     // 1. API: Login
     if (urlPath === '/api/login' && method === 'POST') {
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+        
+        // Check rate limiting first
+        if (isLoginRateLimited(clientIp)) {
+            res.writeHead(429, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Too many failed login attempts. Locked out for 15 minutes.' }));
+            return;
+        }
+
         readJsonBody(req, (err, body) => {
-            if (err || !body.password) {
+            if (err || !body.username || !body.password) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: false, error: 'Password required' }));
+                res.end(JSON.stringify({ success: false, error: 'Username and password required' }));
                 return;
             }
+
+            // Input validation: type and length constraint to avoid DoS/pollution
+            if (typeof body.username !== 'string' || typeof body.password !== 'string' ||
+                body.username.length > 100 || body.password.length > 100) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Invalid input parameters' }));
+                return;
+            }
+
+            const usernameInput = body.username.trim();
+            const passwordInput = body.password;
 
             readSettings((err, settings) => {
                 if (err) {
@@ -782,18 +872,32 @@ const server = http.createServer((req, res) => {
                     return;
                 }
 
-                if (body.password === settings.adminPassword) {
+                const expectedUsername = settings.adminUsername || 'admin';
+                const hashPassword = settings.adminPassword;
+
+                // Validate username and verify bcrypt password hash
+                const isUsernameValid = usernameInput === expectedUsername;
+                const isPasswordValid = hashPassword ? bcrypt.compareSync(passwordInput, hashPassword) : false;
+
+                if (isUsernameValid && isPasswordValid) {
+                    // Success: Clear login failures
+                    clearLoginFailures(clientIp);
+
                     const sessionId = crypto.randomBytes(24).toString('hex');
                     activeSessions.add(sessionId);
 
+                    // Add HttpOnly, SameSite=Strict and Secure flags
                     res.writeHead(200, {
-                        'Set-Cookie': `sid=${sessionId}; HttpOnly; Path=/; Max-Age=7200; SameSite=Strict`,
+                        'Set-Cookie': `sid=${sessionId}; HttpOnly; Path=/; Max-Age=7200; SameSite=Strict; Secure`,
                         'Content-Type': 'application/json'
                     });
                     res.end(JSON.stringify({ success: true }));
                 } else {
+                    // Failure: Record failed attempt for rate limiting
+                    recordLoginFailure(clientIp);
+
                     res.writeHead(401, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: false, error: 'Invalid password credentials' }));
+                    res.end(JSON.stringify({ success: false, error: 'Invalid login credentials' }));
                 }
             });
         });
@@ -990,8 +1094,15 @@ const server = http.createServer((req, res) => {
                     ...updatedSettings
                 };
                 
-                if (!updatedSettings.adminPassword) {
+                if (!updatedSettings.adminPassword || updatedSettings.adminPassword.trim() === '') {
                     mergedSettings.adminPassword = currentSettings.adminPassword;
+                } else if (!updatedSettings.adminPassword.startsWith('$2a$') && !updatedSettings.adminPassword.startsWith('$2b$')) {
+                    const salt = bcrypt.genSaltSync(10);
+                    mergedSettings.adminPassword = bcrypt.hashSync(updatedSettings.adminPassword, salt);
+                }
+
+                if (!updatedSettings.adminUsername || updatedSettings.adminUsername.trim() === '') {
+                    mergedSettings.adminUsername = currentSettings.adminUsername || 'admin';
                 }
 
                 fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), 'utf8', (err) => {

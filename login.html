@@ -95,16 +95,20 @@
             </div>
 
             <h2 class="login-title">Control Center Access</h2>
-            <p class="login-subtitle">Please enter your password to manage active leads and settings.</p>
+            <p class="login-subtitle">Please enter your username and password to manage active leads and settings.</p>
 
             <div class="error-message" id="login-error"></div>
 
             <form id="login-form">
+                <div class="login-input-group" style="margin-bottom: 1.25rem;">
+                    <label for="username">Administrator Username</label>
+                    <input type="text" id="username" placeholder="e.g. admin" required autofocus style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-light); border-radius: 8px; padding: 0.75rem 1rem; color: white;">
+                </div>
                 <div class="login-input-group">
                     <label for="password">Administrator Password</label>
-                    <input type="password" id="password" placeholder="••••••••" required autofocus style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-light); border-radius: 8px; padding: 0.75rem 1rem; color: white;">
+                    <input type="password" id="password" placeholder="••••••••" required style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-light); border-radius: 8px; padding: 0.75rem 1rem; color: white;">
                 </div>
-                <button type="submit" class="btn btn-primary btn-login">
+                <button type="submit" class="btn btn-primary btn-login" style="margin-top: 1.5rem;">
                     Sign In Securely
                     <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
                 </button>
@@ -117,6 +121,7 @@
     <script>
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('login-error');
 
@@ -126,7 +131,7 @@
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({ username, password })
                 });
 
                 const result = await response.json();
