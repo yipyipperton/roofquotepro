@@ -96,7 +96,7 @@ function initIntakeForm() {
 
     function syncHomeSize(value) {
         let val = parseInt(value) || 2000;
-        if (val < 800) val = 800;
+        if (val < 1000) val = 1000;
         if (val > 5000) val = 5000;
         homeSizeRange.value = val;
         homeSizeNum.value = val;

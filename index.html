@@ -133,12 +133,23 @@
                         </div>
 
                         <div class="input-group full-width">
-                            <label for="home-size">Approximate Home Size (Living Area): <span id="home-size-val" style="color: var(--accent); font-weight: 700;">2,000</span> sq ft</label>
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
-                                <input type="range" id="home-size" min="800" max="5000" step="100" value="2000" style="flex-grow: 1; accent-color: var(--accent);">
-                                <input type="number" id="home-size-num" min="800" max="5000" step="100" value="2000" style="width: 90px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0.4rem; border-radius: 6px;">
+                            <label for="home-size">Approximate Home Size (Square Footage): <span id="home-size-val" style="color: var(--accent); font-weight: 700;">2,000</span> sq ft</label>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <input type="range" id="home-size" min="1000" max="5000" step="100" value="2000" style="flex-grow: 1; accent-color: var(--accent); cursor: pointer;">
+                                    <input type="number" id="home-size-num" min="1000" max="5000" step="100" value="2000" style="width: 90px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0.4rem; border-radius: 6px; font-weight: bold;">
+                                </div>
+                                <div class="slider-ticks" style="display: flex; justify-content: space-between; padding: 0 0.5rem; font-size: 0.75rem; color: #94a3b8; font-weight: 500;">
+                                    <span>1,000</span>
+                                    <span>2,000</span>
+                                    <span>3,000</span>
+                                    <span>4,000</span>
+                                    <span>5,000+</span>
+                                </div>
                             </div>
-                            <span class="helper-text">Enter the approximate total living square footage of your house (from public records/Zillow).</span>
+                            <span class="helper-text" style="display: block; margin-top: 0.75rem; color: #94a3b8; font-size: 0.85rem; line-height: 1.4;">
+                                <strong>Reference Guide:</strong> Single-story homes average roughly 1,200 - 1,800 sq ft of roof area. Two-story homes average roughly 2,000 - 2,800 sq ft of roof area.
+                            </span>
                         </div>
 
                         <div class="input-group full-width">
