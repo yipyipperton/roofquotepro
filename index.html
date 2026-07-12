@@ -133,6 +133,15 @@
                         </div>
 
                         <div class="input-group full-width">
+                            <label for="home-size">Approximate Home Size (Living Area): <span id="home-size-val" style="color: var(--accent); font-weight: 700;">2,000</span> sq ft</label>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                                <input type="range" id="home-size" min="800" max="5000" step="100" value="2000" style="flex-grow: 1; accent-color: var(--accent);">
+                                <input type="number" id="home-size-num" min="800" max="5000" step="100" value="2000" style="width: 90px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0.4rem; border-radius: 6px;">
+                            </div>
+                            <span class="helper-text">Enter the approximate total living square footage of your house (from public records/Zillow).</span>
+                        </div>
+
+                        <div class="input-group full-width">
                             <label for="roof-material">Preferred Material Style</label>
                             <select id="roof-material">
                                 <option value="asphalt" selected>Traditional Architectural Asphalt Shingles (Standard)</option>

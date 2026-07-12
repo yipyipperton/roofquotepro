@@ -181,11 +181,17 @@ function readJsonBody(req, callback) {
 // Helper to send emails using Resend REST API
 // Helper to calculate quote securely on the backend mirroring the frontend pricing/margin logic
 function backendCalculateQuote(settings, lead) {
-    const size = parseInt(lead.size) || 2200;
     const material = lead.material || 'asphalt';
     const stories = lead.stories || '1';
     const motivation = lead.motivation || 'pricing';
     const age = lead.age || 'new';
+
+    let size = parseInt(lead.size) || 2200;
+    if (lead.livingArea) {
+        const storiesCount = parseInt(stories) || 1;
+        const livingArea = parseInt(lead.livingArea) || 2000;
+        size = Math.round((livingArea / storiesCount) * 1.35);
+    }
 
     let baseMatRate = parseFloat(settings.rateAsphalt) || 1.50;
     if (material === 'metal') baseMatRate = parseFloat(settings.rateMetal) || 3.20;
@@ -355,8 +361,15 @@ async function generateEstimatePDF(settings, lead) {
     const matLabel = lead.material === 'metal' ? 'Standing-Seam Metal' : lead.material === 'slate' ? 'Slate / Clay Tile' : 'Architectural Asphalt';
     page.drawText(matLabel, { x: 150, y: 535, size: 10, font: helveticaFont, color: primaryColor });
 
+    let calculatedRoofSize = parseInt(lead.size) || 2200;
+    if (lead.livingArea) {
+        const storiesCount = parseInt(lead.stories) || 1;
+        const livingArea = parseInt(lead.livingArea) || 2000;
+        calculatedRoofSize = Math.round((livingArea / storiesCount) * 1.35);
+    }
+
     page.drawText('Calculated Area:', { x: 50, y: 515, size: 10, font: helveticaBold, color: primaryColor });
-    page.drawText(`${(parseInt(lead.size) || 2200).toLocaleString()} sq ft`, { x: 150, y: 515, size: 10, font: helveticaFont, color: primaryColor });
+    page.drawText(`${calculatedRoofSize.toLocaleString()} sq ft`, { x: 150, y: 515, size: 10, font: helveticaFont, color: primaryColor });
 
     page.drawText('Approx. Roof Age:', { x: 340, y: 555, size: 10, font: helveticaBold, color: primaryColor });
     const ageLabel = lead.age === 'old' ? '20+ Years (Critical)' : lead.age === 'mid' ? '10-20 Years' : lead.age === 'new' ? 'Under 10 Years' : 'Unknown';
@@ -365,6 +378,10 @@ async function generateEstimatePDF(settings, lead) {
     page.drawText('Motivation:', { x: 340, y: 535, size: 10, font: helveticaBold, color: primaryColor });
     const motLabel = lead.motivation === 'leak' ? 'Active Leak / Repair' : lead.motivation === 'damage' ? 'Storm Damage' : 'General Quote';
     page.drawText(motLabel, { x: 440, y: 535, size: 10, font: helveticaFont, color: primaryColor });
+
+    page.drawText('Home Living Area:', { x: 340, y: 515, size: 10, font: helveticaBold, color: primaryColor });
+    const livingAreaText = lead.livingArea ? `${parseInt(lead.livingArea).toLocaleString()} sq ft` : 'N/A';
+    page.drawText(livingAreaText, { x: 440, y: 515, size: 10, font: helveticaFont, color: primaryColor });
 
     // Budget range box
     page.drawRectangle({
@@ -639,8 +656,23 @@ async function sendContractorAlertEmail(settings, lead, pricing) {
                         </tr>
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
                             <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Calculated Area:</td>
-                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">${(parseInt(lead.size) || 2200).toLocaleString()} sq ft</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">
+                                ${(() => {
+                                    let calculatedRoofSize = parseInt(lead.size) || 2200;
+                                    if (lead.livingArea) {
+                                        const storiesCount = parseInt(lead.stories) || 1;
+                                        const livingArea = parseInt(lead.livingArea) || 2000;
+                                        calculatedRoofSize = Math.round((livingArea / storiesCount) * 1.35);
+                                    }
+                                    return calculatedRoofSize.toLocaleString();
+                                })()} sq ft
+                            </td>
                         </tr>
+                        ${lead.livingArea ? `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Home Living Area:</td>
+                            <td style="padding: 8px 0; color: #f8fafc; font-weight: 700;">${parseInt(lead.livingArea).toLocaleString()} sq ft</td>
+                        </tr>` : ''}
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
                             <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Approx. Roof Age:</td>
                             <td style="padding: 8px 0; color: #f8fafc; font-weight: 700; text-transform: capitalize;">${lead.age || 'N/A'}</td>

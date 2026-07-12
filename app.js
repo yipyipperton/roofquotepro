@@ -14,6 +14,7 @@ let appState = {
         material: 'asphalt',
         pitch: 'medium',
         stories: '1',
+        livingArea: 2000,
         photoName: 'Default Demo House',
         photoSize: 'N/A'
     },
@@ -88,6 +89,30 @@ function initIntakeForm() {
     const stepBasics = document.getElementById('step-basics');
     const stepContact = document.getElementById('step-contact');
 
+    // Sync home-size range slider and numeric input in Step 2
+    const homeSizeRange = document.getElementById('home-size');
+    const homeSizeNum = document.getElementById('home-size-num');
+    const homeSizeVal = document.getElementById('home-size-val');
+
+    function syncHomeSize(value) {
+        let val = parseInt(value) || 2000;
+        if (val < 800) val = 800;
+        if (val > 5000) val = 5000;
+        homeSizeRange.value = val;
+        homeSizeNum.value = val;
+        homeSizeVal.textContent = val.toLocaleString();
+        appState.formData.livingArea = val;
+    }
+
+    if (homeSizeRange && homeSizeNum && homeSizeVal) {
+        homeSizeRange.addEventListener('input', (e) => {
+            syncHomeSize(e.target.value);
+        });
+        homeSizeNum.addEventListener('input', (e) => {
+            syncHomeSize(e.target.value);
+        });
+    }
+
     function updateStepIndicator(step) {
         document.querySelectorAll('.progress-step').forEach(indicator => {
             const stepNum = parseInt(indicator.dataset.step);
@@ -145,6 +170,7 @@ function initIntakeForm() {
         appState.formData.stories = document.getElementById('roof-stories').value;
         appState.formData.age = document.getElementById('roof-age').value;
         appState.formData.material = document.getElementById('roof-material').value;
+        appState.formData.livingArea = parseInt(document.getElementById('home-size').value) || 2000;
 
         switchStep(stepBasics, stepContact, 3);
     });
@@ -353,9 +379,9 @@ function calculateQuote(size, material, pitch, stories, useDirectSize = false) {
     
     let calculatedSize = size;
     if (!useDirectSize) {
-        if (stories === '1') calculatedSize = 2200;
-        else if (stories === '2') calculatedSize = 3000;
-        else if (stories === '3' || stories === '3+') calculatedSize = 3800;
+        const storiesCount = parseInt(stories) || 1;
+        const livingArea = parseInt(appState.formData.livingArea) || 2000;
+        calculatedSize = Math.round((livingArea / storiesCount) * 1.35);
         // Sync back to state size
         appState.formData.size = calculatedSize;
     }
@@ -412,6 +438,7 @@ async function saveLeadAndNavigate() {
         motivation: info.motivation,
         age: info.age,
         stories: info.stories,
+        livingArea: info.livingArea,
         status: 'sent',
         honeypot: document.getElementById('honeypot-field') ? document.getElementById('honeypot-field').value : ''
     };
@@ -559,6 +586,9 @@ function resetFlow() {
     document.getElementById('roof-stories').value = '1';
     document.getElementById('roof-age').value = 'new';
     document.getElementById('roof-material').value = 'asphalt';
+    document.getElementById('home-size').value = 2000;
+    document.getElementById('home-size-num').value = 2000;
+    document.getElementById('home-size-val').textContent = '2,000';
     document.getElementById('cust-name').value = '';
     document.getElementById('cust-email').value = '';
     document.getElementById('cust-phone').value = '';
@@ -574,6 +604,7 @@ function resetFlow() {
         material: 'asphalt',
         pitch: 'medium',
         stories: '1',
+        livingArea: 2000,
         motivation: 'leak',
         age: 'new'
     };
