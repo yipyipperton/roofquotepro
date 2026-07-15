@@ -335,7 +335,7 @@ async function generateEstimatePDF(settings, lead) {
     const borderLightColor = rgb(0.88, 0.90, 0.93); // light border
 
     // Title / Brand
-    page.drawText('ROOFQUOTE AI', {
+    page.drawText('QUOTRAMAX', {
         x: 50,
         y: 730,
         size: 22,
@@ -558,7 +558,7 @@ async function generateEstimatePDF(settings, lead) {
         color: grayColor
     });
 
-    page.drawText('RoofQuote AI SwaS Platform - Estimate generated automatically from home specifications.', {
+    page.drawText('Quotramax SwaS Platform - Estimate generated automatically from home specifications.', {
         x: 50,
         y: 55,
         size: 7.5,
@@ -578,18 +578,23 @@ async function sendHomeownerReceiptEmail(settings, lead) {
     }
 
     const homeownerBody = {
-        from: 'RoofQuote AI <onboarding@resend.dev>',
+        from: 'Quotramax <onboarding@resend.dev>',
         to: [lead.email],
         subject: `Estimate request received for ${lead.address}`,
         html: `
             <div style="font-family: sans-serif; background-color: #070a13; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <!-- Brand Logo Header -->
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <span style="font-family: Arial, sans-serif; font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">QUOTRA<span style="color: #10b981;">MAX</span></span>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;">Smart Roofing Estimator</div>
+                </div>
                 <h1 style="color: #6366f1; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">Estimate Request Received</h1>
                 <p style="font-size: 15px; color: #f8fafc; line-height: 1.6;">Hello ${lead.name},</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">We have successfully received your roofing estimate request for <strong>${lead.address}</strong>.</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Our team is generating your detailed preliminary estimate report. You will receive a follow-up email shortly containing your preliminary budget breakdown PDF.</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">A local roofing specialist from our network will also review your parameters and be in touch shortly to assist you.</p>
                 <div style="text-align: center; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
-                    <span style="font-size: 12px; color: #64748b;">Powered by RoofQuote AI SwaS Pipeline</span>
+                    <span style="font-size: 12px; color: #64748b;">Powered by Quotramax SwaS Pipeline</span>
                 </div>
             </div>
         `
@@ -620,11 +625,16 @@ async function sendHomeownerPdfEmail(settings, lead, pdfBuffer) {
     }
 
     const homeownerBody = {
-        from: 'RoofQuote AI <onboarding@resend.dev>',
+        from: 'Quotramax <onboarding@resend.dev>',
         to: [lead.email],
         subject: `Your Preliminary Roof Estimate Report for ${lead.address}`,
         html: `
             <div style="font-family: sans-serif; background-color: #070a13; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <!-- Brand Logo Header -->
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <span style="font-family: Arial, sans-serif; font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">QUOTRA<span style="color: #10b981;">MAX</span></span>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;">Smart Roofing Estimator</div>
+                </div>
                 <h1 style="color: #10b981; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">Your Estimate Report is Ready!</h1>
                 <p style="font-size: 15px; color: #f8fafc; line-height: 1.6;">Hello ${lead.name},</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Your automated preliminary estimate for the property at <strong>${lead.address}</strong> is complete.</p>
@@ -637,7 +647,7 @@ async function sendHomeownerPdfEmail(settings, lead, pdfBuffer) {
         `,
         attachments: pdfBuffer ? [
             {
-                filename: `RoofQuote_Estimate_${lead.address.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+                filename: `Quotramax_Estimate_${lead.address.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
                 content: pdfBuffer.toString('base64')
             }
         ] : []
@@ -668,11 +678,16 @@ async function sendContractorAlertEmail(settings, lead, pricing) {
     }
 
     const contractorBody = {
-        from: 'RoofQuote AI <onboarding@resend.dev>',
+        from: 'Quotramax <onboarding@resend.dev>',
         to: [settings.contractorEmail || 'isaaqabukar1@gmail.com'],
         subject: `🚨 NEW LEAD: ${lead.name} - ${lead.address}`,
         html: `
             <div style="font-family: sans-serif; background-color: #090d16; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 2px solid #ef4444; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.15);">
+                <!-- Brand Logo Header -->
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <span style="font-family: Arial, sans-serif; font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">QUOTRA<span style="color: #10b981;">MAX</span></span>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;">Smart Lead Dashboard</div>
+                </div>
                 <h1 style="color: #ef4444; font-size: 24px; font-weight: 800; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">🚨 New Lead Dispatch</h1>
                 <p style="font-size: 14px; color: #94a3b8; margin-top: 0;">An estimate was generated. Review context below in under 10 seconds.</p>
 

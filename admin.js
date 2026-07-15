@@ -1,4 +1,4 @@
-// RoofQuote AI - Contractor Dashboard Frontend Logic
+// Quotramax - Contractor Dashboard Frontend Logic
 
 document.addEventListener('DOMContentLoaded', () => {
     loadLeads();

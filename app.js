@@ -1,4 +1,4 @@
-// RoofQuote AI - Client Intake Portal Logic
+// Quotramax - Client Intake Portal Logic
 
 // Application State
 let appState = {
