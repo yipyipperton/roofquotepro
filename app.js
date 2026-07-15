@@ -138,7 +138,25 @@ function initIntakeForm() {
         }, 300);
     }
 
-    // Step 1 -> Step 2
+    // Step 1: Basics Next Click (goes to Step 2: Property Location)
+    btnBasicsNext.addEventListener('click', () => {
+        appState.formData.stories = document.getElementById('roof-stories').value;
+        appState.formData.age = document.getElementById('roof-age').value;
+        appState.formData.material = document.getElementById('roof-material').value;
+        appState.formData.livingArea = parseInt(document.getElementById('home-size').value) || 2000;
+
+        switchStep(stepBasics, stepProperty, 2);
+    });
+
+    // Step 2: Property Back Click (goes to Step 1: Basics)
+    const btnPropertyPrev = document.getElementById('btn-property-prev');
+    if (btnPropertyPrev) {
+        btnPropertyPrev.addEventListener('click', () => {
+            switchStep(stepProperty, stepBasics, 1);
+        });
+    }
+
+    // Step 2: Property Next Click (goes to Step 3: Contact Details)
     btnPropertyNext.addEventListener('click', () => {
         const address = document.getElementById('cust-address').value.trim();
         const zip = document.getElementById('cust-zip').value.trim();
@@ -158,26 +176,12 @@ function initIntakeForm() {
         appState.formData.zip = zip;
         appState.formData.motivation = motivation;
 
-        switchStep(stepProperty, stepBasics, 2);
+        switchStep(stepProperty, stepContact, 3);
     });
 
-    // Step 2 -> Step 1/3
-    btnBasicsPrev.addEventListener('click', () => {
-        switchStep(stepBasics, stepProperty, 1);
-    });
-
-    btnBasicsNext.addEventListener('click', () => {
-        appState.formData.stories = document.getElementById('roof-stories').value;
-        appState.formData.age = document.getElementById('roof-age').value;
-        appState.formData.material = document.getElementById('roof-material').value;
-        appState.formData.livingArea = parseInt(document.getElementById('home-size').value) || 2000;
-
-        switchStep(stepBasics, stepContact, 3);
-    });
-
-    // Step 3 -> Step 2/Submit
+    // Step 3: Contact Back Click (goes to Step 2: Property Location)
     btnContactPrev.addEventListener('click', () => {
-        switchStep(stepContact, stepBasics, 2);
+        switchStep(stepContact, stepProperty, 2);
     });
 
     btnContactSubmit.addEventListener('click', () => {

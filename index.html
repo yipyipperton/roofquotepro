@@ -48,63 +48,24 @@
 
             <div class="card glass-card form-container">
                 <!-- Progress Indicator -->
+                <!-- Progress Indicator -->
                 <div class="progress-bar-container" style="max-width: 600px;">
                     <div class="progress-step step-1 active" data-step="1">
                         <span class="step-num">1</span>
-                        <span class="step-label">Property & Motivation</span>
+                        <span class="step-label">Home Basics</span>
                     </div>
                     <div class="progress-step step-2" data-step="2">
                         <span class="step-num">2</span>
-                        <span class="step-label">Home Basics</span>
+                        <span class="step-label">Property Location</span>
                     </div>
                     <div class="progress-step step-3" data-step="3">
                         <span class="step-num">3</span>
-                        <span class="step-label">Contact Details</span>
+                        <span class="step-label">Report Delivery</span>
                     </div>
                 </div>
 
-                <!-- Step 1: Property Location & Motivation -->
-                <div class="form-step active" id="step-property">
-                    <h2 class="step-title">Tell us where the project is</h2>
-                    <p class="step-subtitle">We use your address to calculate local permits and weather averages.</p>
-                    
-                    <div class="form-grid">
-                        <div class="input-group full-width">
-                            <label for="cust-address">Street Address</label>
-                            <input type="text" id="cust-address" placeholder="5510 River Road" required>
-                        </div>
-                        <div class="input-group">
-                            <label for="cust-zip">ZIP Code</label>
-                            <input type="text" id="cust-zip" placeholder="34652" required pattern="[0-9]{5}">
-                        </div>
-                        <div class="input-group">
-                            <label for="cust-motivation">What is prompting your roofing project?</label>
-                            <select id="cust-motivation">
-                                <option value="leak" selected>Active Leak / Urgent Repair</option>
-                                <option value="age">Old Roof Replacement (Age/Wear)</option>
-                                <option value="damage">Storm / Wind Damage Inspection</option>
-                                <option value="pricing">General Budget Pricing (Planning)</option>
-                                <option value="selling">Preparing to Sell House</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Invisible Honeypot Field to trap automated spam bots -->
-                    <div style="display: none; visibility: hidden; opacity: 0; width: 0; height: 0;" aria-hidden="true">
-                        <input type="text" name="website_source_ref" id="honeypot-field" tabindex="-1" autocomplete="off">
-                    </div>
-
-                    <div class="form-actions">
-                        <div></div>
-                        <button type="button" class="btn btn-primary" id="btn-property-next">
-                            Next Step
-                            <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Step 2: Home Basics & Material -->
-                <div class="form-step" id="step-basics">
+                <!-- Step 1: Home Basics & Material -->
+                <div class="form-step active" id="step-basics">
                     <h2 class="step-title">Specify your home parameters</h2>
                     <p class="step-subtitle">Tell us about the roof's height, age, and preferred style.</p>
 
@@ -160,10 +121,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="btn-basics-prev">
-                            <svg class="icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                            Back
-                        </button>
+                        <div></div>
                         <button type="button" class="btn btn-primary" id="btn-basics-next">
                             Next Step
                             <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -171,8 +129,51 @@
                     </div>
                 </div>
 
+                <!-- Step 2: Property Location & Motivation -->
+                <div class="form-step" id="step-property" style="display: none;">
+                    <h2 class="step-title">Tell us where the project is</h2>
+                    <p class="step-subtitle">We use your address to calculate local permits and weather averages.</p>
+                    
+                    <div class="form-grid">
+                        <div class="input-group full-width">
+                            <label for="cust-address">Street Address</label>
+                            <input type="text" id="cust-address" placeholder="5510 River Road" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="cust-zip">ZIP Code</label>
+                            <input type="text" id="cust-zip" placeholder="34652" required pattern="[0-9]{5}">
+                        </div>
+                        <div class="input-group">
+                            <label for="cust-motivation">What is prompting your roofing project?</label>
+                            <select id="cust-motivation">
+                                <option value="leak" selected>Active Leak / Urgent Repair</option>
+                                <option value="age">Old Roof Replacement (Age/Wear)</option>
+                                <option value="damage">Storm / Wind Damage Inspection</option>
+                                <option value="pricing">General Budget Pricing (Planning)</option>
+                                <option value="selling">Preparing to Sell House</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Invisible Honeypot Field to trap automated spam bots -->
+                    <div style="display: none; visibility: hidden; opacity: 0; width: 0; height: 0;" aria-hidden="true">
+                        <input type="text" name="website_source_ref" id="honeypot-field" tabindex="-1" autocomplete="off">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-property-prev">
+                            <svg class="icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                            Back
+                        </button>
+                        <button type="button" class="btn btn-primary" id="btn-property-next">
+                            Next Step
+                            <svg class="icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Step 3: Contact Details -->
-                <div class="form-step" id="step-contact">
+                <div class="form-step" id="step-contact" style="display: none;">
                     <h2 class="step-title">Where should we send your preliminary report?</h2>
                     <p class="step-subtitle">We will calculate your budget range and send your pricing estimate sheet.</p>
 
