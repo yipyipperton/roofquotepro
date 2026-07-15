@@ -1723,8 +1723,248 @@ select:focus {
 .scan-icon {
     animation: scanPulse 2s infinite ease-in-out;
 }
-
 @keyframes scanPulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.08); opacity: 0.85; }
+}
+
+/* --- QUOTRAMAX PREMIUM SPLIT SCREEN HERO STYLES --- */
+.split-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 4.5rem;
+    align-items: start;
+    margin-top: 2rem;
+    width: 100%;
+}
+
+.brand-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 1rem;
+}
+
+.pill-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #a5b4fc;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 9999px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.brand-hero-title {
+    font-family: var(--font-heading);
+    font-size: 2.85rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--text-main);
+    letter-spacing: -0.03em;
+    margin-bottom: 1.25rem;
+}
+
+.brand-hero-description {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+}
+
+/* Trust Checklist */
+.trust-points-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    margin-bottom: 3rem;
+    width: 100%;
+}
+
+.trust-points-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+}
+
+.trust-icon {
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    filter: drop-shadow(0 0 4px var(--accent-glow));
+}
+
+.trust-points-list li strong {
+    display: block;
+    color: var(--text-main);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.trust-points-list li span {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Quick Material Preview Cards */
+.material-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+}
+
+.mini-card {
+    background: rgba(13, 20, 38, 0.45);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.mini-card:hover {
+    background: rgba(13, 20, 38, 0.7);
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+}
+
+.mini-card.active {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+}
+
+.mat-indicator {
+    display: block;
+    width: 100%;
+    height: 6px;
+    border-radius: 9999px;
+}
+
+.mat-indicator.asphalt { background: #64748b; }
+.mat-indicator.metal { background: #0ea5e9; }
+.mat-indicator.slate { background: #10b981; }
+
+.mat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.mat-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.mat-price-label {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
+/* Form column styles */
+.form-column {
+    width: 100%;
+}
+
+/* Polishing custom range slider styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    transition: background 0.3s;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 12px var(--accent-glow);
+    border: 2px solid #ffffff;
+    transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background: #34d399;
+}
+
+/* Glowing card transitions */
+.form-container.glass-card {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.form-container.glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+}
+
+/* Responsive constraints */
+@media (max-width: 1024px) {
+    .split-layout {
+        gap: 3rem;
+    }
+    .brand-hero-title {
+        font-size: 2.35rem;
+    }
+}
+
+@media (max-width: 968px) {
+    .split-layout {
+        grid-template-columns: 1fr;
+        gap: 3.5rem;
+        margin-top: 1rem;
+    }
+    .brand-column {
+        align-items: center;
+        text-align: center;
+    }
+    .pill-badge {
+        margin-bottom: 1.25rem;
+    }
+    .brand-hero-description {
+        margin-bottom: 2rem;
+        max-width: 600px;
+    }
+    .trust-points-list {
+        max-width: 600px;
+        margin-bottom: 2.5rem;
+    }
+    .trust-points-list li {
+        text-align: left;
+    }
+    .material-preview-grid {
+        max-width: 600px;
+    }
 }

@@ -113,6 +113,31 @@ function initIntakeForm() {
         });
     }
 
+    // Sync material cards and form material dropdown selects
+    const roofMaterialSelect = document.getElementById('roof-material');
+    const miniCards = document.querySelectorAll('.mini-card');
+    
+    if (roofMaterialSelect && miniCards.length > 0) {
+        roofMaterialSelect.addEventListener('change', (e) => {
+            const selectedVal = e.target.value;
+            miniCards.forEach(card => {
+                const clickAttr = card.getAttribute('onclick') || '';
+                if (clickAttr.includes(selectedVal)) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        });
+
+        miniCards.forEach(card => {
+            card.addEventListener('click', () => {
+                miniCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            });
+        });
+    }
+
     function updateStepIndicator(step) {
         document.querySelectorAll('.progress-step').forEach(indicator => {
             const stepNum = parseInt(indicator.dataset.step);
