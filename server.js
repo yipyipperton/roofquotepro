@@ -343,7 +343,7 @@ async function generateEstimatePDF(settings, lead) {
         color: accentColor
     });
 
-    page.drawText('Instant Satellite Estimate Report', {
+    page.drawText('Instant Preliminary Estimate Report', {
         x: 50,
         y: 715,
         size: 10,
@@ -558,7 +558,7 @@ async function generateEstimatePDF(settings, lead) {
         color: grayColor
     });
 
-    page.drawText('RoofQuote AI SwaS Platform - Estimate generated automatically from satellite characteristics.', {
+    page.drawText('RoofQuote AI SwaS Platform - Estimate generated automatically from home specifications.', {
         x: 50,
         y: 55,
         size: 7.5,
@@ -586,7 +586,7 @@ async function sendHomeownerReceiptEmail(settings, lead) {
                 <h1 style="color: #6366f1; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">Estimate Request Received</h1>
                 <p style="font-size: 15px; color: #f8fafc; line-height: 1.6;">Hello ${lead.name},</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">We have successfully received your roofing estimate request for <strong>${lead.address}</strong>.</p>
-                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Our team is generating your detailed satellite analysis report. You will receive a follow-up email shortly containing your preliminary budget breakdown PDF.</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Our team is generating your detailed preliminary estimate report. You will receive a follow-up email shortly containing your preliminary budget breakdown PDF.</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">A local roofing specialist from our network will also review your parameters and be in touch shortly to assist you.</p>
                 <div style="text-align: center; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
                     <span style="font-size: 12px; color: #64748b;">Powered by RoofQuote AI SwaS Pipeline</span>
@@ -622,12 +622,12 @@ async function sendHomeownerPdfEmail(settings, lead, pdfBuffer) {
     const homeownerBody = {
         from: 'RoofQuote AI <onboarding@resend.dev>',
         to: [lead.email],
-        subject: `Your Satellite Roof Estimate Report for ${lead.address}`,
+        subject: `Your Preliminary Roof Estimate Report for ${lead.address}`,
         html: `
             <div style="font-family: sans-serif; background-color: #070a13; color: #f8fafc; padding: 2.5rem; max-width: 600px; margin: 0 auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <h1 style="color: #10b981; font-size: 24px; font-weight: 700; margin-bottom: 1.25rem;">Your Estimate Report is Ready!</h1>
                 <p style="font-size: 15px; color: #f8fafc; line-height: 1.6;">Hello ${lead.name},</p>
-                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Your automated satellite estimate for the property at <strong>${lead.address}</strong> is complete.</p>
+                <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Your automated preliminary estimate for the property at <strong>${lead.address}</strong> is complete.</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">We have attached a detailed PDF report containing your custom pricing breakdown, safety margins, and permit budget configurations.</p>
                 <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">Please review the attached PDF document. To schedule a free, in-person inspection and lock in your price, you can reply directly to this email or contact us at <a href="mailto:${settings.contractorEmail || 'isaaqabukar1@gmail.com'}" style="color: #6366f1; text-decoration: none;">${settings.contractorEmail || 'isaaqabukar1@gmail.com'}</a>.</p>
                 <div style="text-align: center; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
