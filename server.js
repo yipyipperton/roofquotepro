@@ -204,6 +204,9 @@ function readSettings(callback) {
         supabase.from('settings').select('*').eq('id', 1).single()
             .then(({ data, error }) => {
                 if (error || !data) {
+                    if (error && error.code !== 'PGRST116') { // PGRST116 is single row empty return
+                        console.warn('Supabase settings query returned error, falling back to local file:', error);
+                    }
                     readLocalSettings(callback);
                 } else {
                     const settings = {
@@ -223,7 +226,10 @@ function readSettings(callback) {
                     callback(null, processSettings(settings));
                 }
             })
-            .catch(() => readLocalSettings(callback));
+            .catch((err) => {
+                console.warn('Supabase settings query exception, falling back to local file:', err);
+                readLocalSettings(callback);
+            });
     } else {
         readLocalSettings(callback);
     }
@@ -267,6 +273,7 @@ function writeSettings(mergedSettings, callback) {
         supabase.from('settings').upsert([dbRow])
             .then(({ error }) => {
                 if (error) {
+                    console.error('Supabase writeSettings error:', error);
                     callback(error);
                 } else {
                     fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), 'utf8', () => {
@@ -274,7 +281,10 @@ function writeSettings(mergedSettings, callback) {
                     });
                 }
             })
-            .catch(err => callback(err));
+            .catch(err => {
+                console.error('Supabase writeSettings exception:', err);
+                callback(err);
+            });
     } else {
         fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), 'utf8', (err) => {
             callback(err);
@@ -288,6 +298,7 @@ function readLeads(callback) {
         supabase.from('leads').select('*').order('date', { ascending: false })
             .then(({ data, error }) => {
                 if (error) {
+                    console.error('Supabase readLeads error:', error);
                     callback(error, null);
                 } else {
                     const mappedData = data.map(row => ({
@@ -310,7 +321,10 @@ function readLeads(callback) {
                     callback(null, mappedData);
                 }
             })
-            .catch(err => callback(err, null));
+            .catch(err => {
+                console.error('Supabase readLeads exception:', err);
+                callback(err, null);
+            });
     } else {
         fs.readFile(LEADS_FILE, 'utf8', (err, data) => {
             if (err) {
@@ -350,12 +364,16 @@ function writeLead(newLead, callback) {
         supabase.from('leads').insert([dbRow])
             .then(({ error }) => {
                 if (error) {
+                    console.error('Supabase writeLead error:', error);
                     callback(error);
                 } else {
                     callback(null);
                 }
             })
-            .catch(err => callback(err));
+            .catch(err => {
+                console.error('Supabase writeLead exception:', err);
+                callback(err);
+            });
     } else {
         fs.readFile(LEADS_FILE, 'utf8', (err, data) => {
             let leads = [];
@@ -380,12 +398,16 @@ function clearLeads(callback) {
         supabase.from('leads').delete().neq('name', '')
             .then(({ error }) => {
                 if (error) {
+                    console.error('Supabase clearLeads error:', error);
                     callback(error);
                 } else {
                     callback(null);
                 }
             })
-            .catch(err => callback(err));
+            .catch(err => {
+                console.error('Supabase clearLeads exception:', err);
+                callback(err);
+            });
     } else {
         fs.writeFile(LEADS_FILE, JSON.stringify([], null, 2), 'utf8', (err) => {
             callback(err);
