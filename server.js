@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const bcrypt = require('bcryptjs');
+const { createClient } = require('@supabase/supabase-js');
 
 // Load local .env file securely if present (excluded from Git tracking)
 const envPath = path.join(__dirname, '.env');
@@ -25,6 +26,19 @@ if (fs.existsSync(envPath)) {
     } catch (err) {
         console.error('Error reading .env file:', err);
     }
+}
+
+// Supabase Client Initialization (Production-grade Database)
+let supabase = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+    try {
+        supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+        console.log('Production Database Client: Supabase connected.');
+    } catch (e) {
+        console.error('Failed to initialize Supabase client:', e);
+    }
+} else {
+    console.log('Database Environment: No Supabase keys found. Defaulting to local JSON storage.');
 }
 
 // Server Session Storage
@@ -160,42 +174,223 @@ if (!fs.existsSync(SETTINGS_FILE)) {
 
 // Helper to read settings securely with process.env overrides and obfuscated secure fallbacks
 function readSettings(callback) {
-    fs.readFile(SETTINGS_FILE, 'utf8', (err, data) => {
-        if (err) {
-            callback(err, null);
-            return;
+    const processSettings = (settings) => {
+        // Secure Obfuscated Fallbacks to prevent GitHub secret scanner revocation
+        const SECURE_GMAPS_FALLBACK = Buffer.from('QUl6YVN5QlhDeG9QdWMwLTdxelBJZ29HMU85dk5lNTF4LS1VdTJV', 'base64').toString('utf8');
+        const SECURE_RESEND_FALLBACK = Buffer.from('cmVfRjV2YjhxdGNfTmhKUXZTd243VVNTbnppSDNxRW9MbnBR', 'base64').toString('utf8');
+
+        // 1. Resolve Resend Key
+        if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '') {
+            settings.resendApiKey = process.env.RESEND_API_KEY.trim();
+        } else if (!settings.resendApiKey || settings.resendApiKey.trim() === '' || settings.resendApiKey.includes('ENVIRONMENT_VARIABLE')) {
+            settings.resendApiKey = SECURE_RESEND_FALLBACK;
         }
-        try {
-            const settings = JSON.parse(data);
 
-            // Secure Obfuscated Fallbacks to prevent GitHub secret scanner revocation
-            const SECURE_GMAPS_FALLBACK = Buffer.from('QUl6YVN5QlhDeG9QdWMwLTdxelBJZ29HMU85dk5lNTF4LS1VdTJV', 'base64').toString('utf8');
-            const SECURE_RESEND_FALLBACK = Buffer.from('cmVfRjV2YjhxdGNfTmhKUXZTd243VVNTbnppSDNxRW9MbnBR', 'base64').toString('utf8');
-
-            // 1. Resolve Resend Key
-            if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '') {
-                settings.resendApiKey = process.env.RESEND_API_KEY.trim();
-            } else if (!settings.resendApiKey || settings.resendApiKey.trim() === '' || settings.resendApiKey.includes('ENVIRONMENT_VARIABLE')) {
-                settings.resendApiKey = SECURE_RESEND_FALLBACK;
-            }
-
-            // 2. Resolve Google Maps Key
-            if (process.env.GMAPS_API_KEY && process.env.GMAPS_API_KEY.trim() !== '') {
-                settings.gmapsApiKey = process.env.GMAPS_API_KEY.trim();
-            } else if (!settings.gmapsApiKey || settings.gmapsApiKey.trim() === '' || settings.gmapsApiKey.includes('ENVIRONMENT_VARIABLE')) {
-                settings.gmapsApiKey = SECURE_GMAPS_FALLBACK;
-            }
-
-            // 3. Resolve Contractor Email
-            if (!settings.contractorEmail || settings.contractorEmail.trim() === '' || settings.contractorEmail.includes('sales@')) {
-                settings.contractorEmail = 'isaaqabukar1@gmail.com';
-            }
-
-            callback(null, settings);
-        } catch (e) {
-            callback(e, null);
+        // 2. Resolve Google Maps Key
+        if (process.env.GMAPS_API_KEY && process.env.GMAPS_API_KEY.trim() !== '') {
+            settings.gmapsApiKey = process.env.GMAPS_API_KEY.trim();
+        } else if (!settings.gmapsApiKey || settings.gmapsApiKey.trim() === '' || settings.gmapsApiKey.includes('ENVIRONMENT_VARIABLE')) {
+            settings.gmapsApiKey = SECURE_GMAPS_FALLBACK;
         }
-    });
+
+        // 3. Resolve Contractor Email
+        if (!settings.contractorEmail || settings.contractorEmail.trim() === '' || settings.contractorEmail.includes('sales@')) {
+            settings.contractorEmail = 'isaaqabukar1@gmail.com';
+        }
+        return settings;
+    };
+
+    if (supabase) {
+        supabase.from('settings').select('*').eq('id', 1).single()
+            .then(({ data, error }) => {
+                if (error || !data) {
+                    readLocalSettings(callback);
+                } else {
+                    const settings = {
+                        rateAsphalt: parseFloat(data.rate_asphalt) || 1.50,
+                        rateMetal: parseFloat(data.rate_metal) || 3.20,
+                        rateSlate: parseFloat(data.rate_slate) || 5.80,
+                        rateInstall: parseFloat(data.rate_install) || 1.75,
+                        multSteep: parseFloat(data.mult_steep) || 1.30,
+                        mult2Story: parseFloat(data.mult_2story) || 1.20,
+                        mult3Story: parseFloat(data.mult_3story) || 1.40,
+                        gmapsApiKey: data.gmaps_api_key || '',
+                        resendApiKey: data.resend_api_key || '',
+                        contractorEmail: data.contractor_email || '',
+                        adminPassword: data.admin_password || '',
+                        adminUsername: data.admin_username || 'admin'
+                    };
+                    callback(null, processSettings(settings));
+                }
+            })
+            .catch(() => readLocalSettings(callback));
+    } else {
+        readLocalSettings(callback);
+    }
+
+    function readLocalSettings(cb) {
+        fs.readFile(SETTINGS_FILE, 'utf8', (err, data) => {
+            if (err) {
+                cb(err, null);
+                return;
+            }
+            try {
+                const settings = JSON.parse(data);
+                cb(null, processSettings(settings));
+            } catch (e) {
+                cb(e, null);
+            }
+        });
+    }
+}
+
+// Helper to write settings with Supabase fallback
+function writeSettings(mergedSettings, callback) {
+    if (supabase) {
+        const dbRow = {
+            id: 1,
+            rate_asphalt: parseFloat(mergedSettings.rateAsphalt) || 1.50,
+            rate_metal: parseFloat(mergedSettings.rateMetal) || 3.20,
+            rate_slate: parseFloat(mergedSettings.rateSlate) || 5.80,
+            rate_install: parseFloat(mergedSettings.rateInstall) || 1.75,
+            mult_steep: parseFloat(mergedSettings.multSteep) || 1.30,
+            mult_2story: parseFloat(mergedSettings.mult2Story) || 1.20,
+            mult_3story: parseFloat(mergedSettings.mult3Story) || 1.40,
+            gmaps_api_key: mergedSettings.gmapsApiKey || null,
+            resend_api_key: mergedSettings.resendApiKey || null,
+            contractor_email: mergedSettings.contractorEmail || null,
+            admin_password: mergedSettings.adminPassword,
+            admin_username: mergedSettings.adminUsername || 'admin',
+            updated_at: new Date().toISOString()
+        };
+
+        supabase.from('settings').upsert([dbRow])
+            .then(({ error }) => {
+                if (error) {
+                    callback(error);
+                } else {
+                    fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), 'utf8', () => {
+                        callback(null);
+                    });
+                }
+            })
+            .catch(err => callback(err));
+    } else {
+        fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), 'utf8', (err) => {
+            callback(err);
+        });
+    }
+}
+
+// Helper to read leads with Supabase fallback
+function readLeads(callback) {
+    if (supabase) {
+        supabase.from('leads').select('*').order('date', { ascending: false })
+            .then(({ data, error }) => {
+                if (error) {
+                    callback(error, null);
+                } else {
+                    const mappedData = data.map(row => ({
+                        id: row.id,
+                        name: row.name,
+                        email: row.email,
+                        phone: row.phone,
+                        address: row.address,
+                        zip: row.zip,
+                        size: row.size,
+                        material: row.material,
+                        price: row.price,
+                        motivation: row.motivation,
+                        age: row.age,
+                        stories: row.stories,
+                        livingArea: row.living_area,
+                        status: row.status,
+                        date: row.date
+                    }));
+                    callback(null, mappedData);
+                }
+            })
+            .catch(err => callback(err, null));
+    } else {
+        fs.readFile(LEADS_FILE, 'utf8', (err, data) => {
+            if (err) {
+                callback(err, null);
+                return;
+            }
+            try {
+                const leads = JSON.parse(data);
+                callback(null, leads);
+            } catch (e) {
+                callback(e, null);
+            }
+        });
+    }
+}
+
+// Helper to write a new lead with Supabase fallback
+function writeLead(newLead, callback) {
+    if (supabase) {
+        const dbRow = {
+            name: newLead.name,
+            email: newLead.email,
+            phone: newLead.phone,
+            address: newLead.address,
+            zip: newLead.zip,
+            size: parseInt(newLead.size) || 0,
+            material: newLead.material,
+            price: parseInt(newLead.price) || 0,
+            motivation: newLead.motivation,
+            age: newLead.age,
+            stories: newLead.stories,
+            living_area: newLead.livingArea ? parseInt(newLead.livingArea) : null,
+            status: newLead.status || 'sent',
+            date: newLead.date || new Date().toISOString()
+        };
+
+        supabase.from('leads').insert([dbRow])
+            .then(({ error }) => {
+                if (error) {
+                    callback(error);
+                } else {
+                    callback(null);
+                }
+            })
+            .catch(err => callback(err));
+    } else {
+        fs.readFile(LEADS_FILE, 'utf8', (err, data) => {
+            let leads = [];
+            if (!err && data) {
+                try {
+                    leads = JSON.parse(data);
+                } catch (e) {
+                    leads = [];
+                }
+            }
+            leads.unshift(newLead);
+            fs.writeFile(LEADS_FILE, JSON.stringify(leads, null, 2), 'utf8', (err) => {
+                callback(err);
+            });
+        });
+    }
+}
+
+// Helper to clear leads database with Supabase fallback
+function clearLeads(callback) {
+    if (supabase) {
+        supabase.from('leads').delete().neq('name', '')
+            .then(({ error }) => {
+                if (error) {
+                    callback(error);
+                } else {
+                    callback(null);
+                }
+            })
+            .catch(err => callback(err));
+    } else {
+        fs.writeFile(LEADS_FILE, JSON.stringify([], null, 2), 'utf8', (err) => {
+            callback(err);
+        });
+    }
 }
 
 // Helper to parse cookies from headers
@@ -942,14 +1137,14 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        fs.readFile(LEADS_FILE, 'utf8', (err, data) => {
+        readLeads((err, data) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Could not read leads file' }));
+                res.end(JSON.stringify({ error: 'Could not read leads database' }));
                 return;
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(data);
+            res.end(JSON.stringify(data));
         });
         return;
     }
@@ -979,37 +1174,24 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            fs.readFile(LEADS_FILE, 'utf8', (err, data) => {
-                let leads = [];
-                if (!err && data) {
-                    try {
-                        leads = JSON.parse(data);
-                    } catch (e) {
-                        leads = [];
-                    }
+            writeLead(newLead, (err) => {
+                if (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Failed to write lead' }));
+                    return;
                 }
-                
-                leads.unshift(newLead);
 
-                fs.writeFile(LEADS_FILE, JSON.stringify(leads, null, 2), 'utf8', (err) => {
-                    if (err) {
-                        res.writeHead(500, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ success: false, error: 'Failed to write lead' }));
-                        return;
+                // Trigger async SwaS lead notifications in the background
+                readSettings((err, settings) => {
+                    if (!err && settings) {
+                        processLeadNotifications(settings, newLead);
+                    } else {
+                        console.error('Could not load settings for SwaS lead pipeline:', err);
                     }
-
-                    // Trigger async SwaS lead notifications in the background
-                    readSettings((err, settings) => {
-                        if (!err && settings) {
-                            processLeadNotifications(settings, newLead);
-                        } else {
-                            console.error('Could not load settings for SwaS lead pipeline:', err);
-                        }
-                    });
-
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true }));
                 });
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true }));
             });
         });
         return;
@@ -1023,7 +1205,7 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        fs.writeFile(LEADS_FILE, JSON.stringify([], null, 2), 'utf8', (err) => {
+        clearLeads((err) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: 'Failed to clear leads database' }));
@@ -1095,15 +1277,13 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            fs.readFile(SETTINGS_FILE, 'utf8', (err, currentData) => {
+            readSettings((err, currentSettings) => {
                 if (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, error: 'Database read error' }));
                     return;
                 }
 
-                const currentSettings = JSON.parse(currentData);
-                
                 const mergedSettings = {
                     ...currentSettings,
                     ...updatedSettings
@@ -1120,7 +1300,7 @@ const server = http.createServer((req, res) => {
                     mergedSettings.adminUsername = currentSettings.adminUsername || 'admin';
                 }
 
-                fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2), 'utf8', (err) => {
+                writeSettings(mergedSettings, (err) => {
                     if (err) {
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ success: false, error: 'Failed to save settings' }));
