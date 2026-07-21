@@ -193,7 +193,7 @@ export async function PATCH(req, { params }) {
                 `;
 
                 await resend.emails.send({
-                    from: 'Quotramax Scheduling <onboarding@resend.dev>',
+                    from: 'Quotramax Scheduling <no-reply@quotramax.com>',
                     to: contractorEmail,
                     subject: `📅 Appointment: ${lead.name} - ${appointment.date}`,
                     html: appointmentHtml

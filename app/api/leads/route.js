@@ -279,7 +279,7 @@ export async function POST(req) {
         // Send emails with isolated try-catch blocks to prevent sandbox limitations from blocking contractor notification
         try {
             await resend.emails.send({
-                from: 'Quotramax Onboarding <onboarding@resend.dev>',
+                from: 'Quotramax Onboarding <no-reply@quotramax.com>',
                 to: email, // Homeowner
                 subject: 'Your Preliminary Roof Estimate Summary - Quotramax',
                 html: homeownerHtml
@@ -291,7 +291,7 @@ export async function POST(req) {
         try {
             // Also send a copy of the homeowner template to the contractor for testing purposes
             await resend.emails.send({
-                from: 'Quotramax Onboarding <onboarding@resend.dev>',
+                from: 'Quotramax Onboarding <no-reply@quotramax.com>',
                 to: contractorEmail,
                 subject: `[Homeowner Preview Copy] Your Preliminary Roof Estimate Summary - Quotramax`,
                 html: homeownerHtml
@@ -302,7 +302,7 @@ export async function POST(req) {
 
         try {
             await resend.emails.send({
-                from: 'Quotramax Lead Alert <onboarding@resend.dev>',
+                from: 'Quotramax Lead Alert <no-reply@quotramax.com>',
                 to: contractorEmail,
                 subject: `New Lead: ${name} - ${address}`,
                 html: contractorHtml
