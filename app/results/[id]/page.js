@@ -33,10 +33,10 @@ export default function Results() {
             })
             .then(data => {
                 setLead(data);
-                if (data.status === 'Inspection Scheduled') {
+                if (data.status === 'Inspection Scheduled' || data.appointment) {
                     setScheduled(true);
-                    if (data.estimate?.appointment || data.estimateDetails?.appointment) {
-                        setAppointmentDetails(data.estimate?.appointment || data.estimateDetails?.appointment);
+                    if (data.appointment) {
+                        setAppointmentDetails(data.appointment);
                     }
                 }
                 setLoading(false);
@@ -218,14 +218,19 @@ export default function Results() {
                                 </button>
                                 
                                 {scheduled ? (
-                                    <button disabled className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3.5 px-4 rounded-xl flex flex-col items-center justify-center gap-0.5 cursor-not-allowed">
-                                        <span className="text-xs font-bold">✓ Inspection Booked!</span>
-                                        {appointmentDetails && (
-                                            <span className="text-[9px] font-medium text-emerald-555">
-                                                {new Date(appointmentDetails.date).toLocaleDateString()} @ {appointmentDetails.time}
-                                            </span>
-                                        )}
-                                    </button>
+                                    <div className="flex flex-col gap-1 w-full">
+                                        <button disabled className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3.5 px-4 rounded-xl flex flex-col items-center justify-center gap-0.5 cursor-not-allowed">
+                                            <span className="text-xs font-bold">✓ Inspection Scheduled!</span>
+                                            {appointmentDetails && (
+                                                <span className="text-[9px] font-medium text-emerald-300">
+                                                    {new Date(appointmentDetails.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} @ {appointmentDetails.time}
+                                                </span>
+                                            )}
+                                        </button>
+                                        <button onClick={() => setShowScheduler(true)} className="text-[10px] text-slate-500 hover:text-white underline text-center mt-1.5 transition-colors">
+                                            Reschedule appointment time slot
+                                        </button>
+                                    </div>
                                 ) : (
                                     <button onClick={() => setShowScheduler(true)} className="w-full bg-indigo-500 hover:bg-indigo-650 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm shadow-[0_4px_14px_rgba(99,102,241,0.2)]">
                                         📆 Schedule Site Inspection

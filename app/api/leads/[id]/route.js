@@ -93,6 +93,7 @@ export async function GET(req, { params }) {
             insurance,
             roofAge,
             pitch,
+            appointment: extraData.appointment || null,
             estimate
         };
 

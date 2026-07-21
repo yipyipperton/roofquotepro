@@ -20,20 +20,22 @@ export default function Home() {
         timeline: 'Under 1 month',
         insurance: 'Cash / Direct Financing',
         roofAge: '10 - 20 years',
-        pitch: 'Standard'
+        pitch: 'Standard',
+        appointmentDate: '',
+        appointmentTime: 'Morning (9AM-11AM)'
     });
 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     const handleInputChange = (e) => {
         const { id, value } = e.target;
         if (id === 'phone') {
-            // Strip all non-digits and limit to 10
             const input = value.replace(/\D/g, '');
             const cleanInput = input.substring(0, 10);
             
-            // Auto format: XXX-XXX-XXXX
             let formatted = '';
             if (cleanInput.length > 0) {
                 formatted += cleanInput.substring(0, 3);
@@ -68,8 +70,11 @@ export default function Home() {
             if (digitsOnly.length !== 10) {
                 return 'Please enter a valid 10-digit phone number.';
             }
-            
             if (!formData.address.trim()) return 'Please enter your street address.';
+        }
+        if (step === 5) {
+            if (!formData.appointmentDate) return 'Please select a preferred inspection date.';
+            if (!formData.appointmentTime) return 'Please select a preferred inspection time slot.';
         }
         return '';
     };
@@ -90,14 +95,28 @@ export default function Home() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const validationError = validateStep();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         setSubmitting(true);
         setError('');
+
+        const payload = {
+            ...formData,
+            appointment: {
+                date: formData.appointmentDate,
+                time: formData.appointmentTime
+            }
+        };
 
         try {
             const res = await fetch('/api/leads', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             const result = await res.json();
@@ -186,8 +205,8 @@ export default function Home() {
                                             {step === 1 ? 'Customer & Location' :
                                              step === 2 ? 'Property Parameters' :
                                              step === 3 ? 'Roof Specifications' :
-                                             step === 4 ? 'Timeline & Claims' :
-                                             'Slope & Age Details'}
+                                             step === 4 ? 'Project Qualifications' :
+                                             'Schedule On-Site Visit'}
                                         </span>
                                     </span>
                                     <span className="text-xs font-bold text-slate-500">{Math.round((step / 5) * 100)}% Complete</span>
@@ -366,48 +385,55 @@ export default function Home() {
                                 </div>
                             )}
 
-                            {/* STEP 4: Timeline & Financing (NEW!) */}
+                            {/* STEP 4: Project Qualifications (Consolidated timelines + structure parameters) */}
                             {step === 4 && (
                                 <div className="space-y-6">
                                     <div>
-                                        <h2 className="text-xl font-extrabold text-white">Timeline & Financing</h2>
-                                        <p className="text-xs text-slate-400 mt-1">Provide project timeframe and payment funding parameters.</p>
+                                        <h2 className="text-xl font-extrabold text-white">Project Qualifications</h2>
+                                        <p className="text-xs text-slate-400 mt-1">Specify timeline urgency, financing, slope pitch, and current shingles age.</p>
                                     </div>
 
                                     <div className="space-y-5">
-                                        {/* Timeline Grid */}
-                                        <div className="flex flex-col gap-2.5">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Project Timeframe Urgency</label>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {[
-                                                    { value: 'Right away', label: '🚨 Emergency Leak', desc: 'Active water entry' },
-                                                    { value: 'Under 1 month', label: '📅 Within 30 Days', desc: 'Ready to sign contract' },
-                                                    { value: '1 - 3 months', label: '🕒 Next 90 Days', desc: 'Planning and financing' },
-                                                    { value: 'Just planning', label: '🔍 Research stage', desc: 'Comparing budget ballparks' }
-                                                ].map((t) => (
-                                                    <button key={t.value} onClick={() => handleSelectOption('timeline', t.value)} className={`p-3 rounded-xl border text-left flex flex-col gap-0.5 transition-all ${formData.timeline === t.value ? 'bg-indigo-500/10 border-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.15)]' : 'bg-[#12182c] border-white/5 text-slate-400 hover:border-white/15'}`}>
-                                                        <span className="text-xs font-bold text-slate-200">{t.label}</span>
-                                                        <span className="text-[9px] text-slate-550">{t.desc}</span>
-                                                    </button>
-                                                ))}
+                                        {/* Grid Row 1: Timeline & Pitch */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Project Timeline</label>
+                                                <select id="timeline" value={formData.timeline} onChange={handleInputChange} className="w-full bg-[#12182c] border border-white/10 rounded-xl px-3.5 py-3 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                                                    <option value="Right away">🚨 Emergency Leak (Right away)</option>
+                                                    <option value="Under 1 month">📅 Ready (Within 30 Days)</option>
+                                                    <option value="1 - 3 months">🕒 Planning (Next 90 Days)</option>
+                                                    <option value="Just planning">🔍 Just researching ballparks</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Roof Slope Pitch</label>
+                                                <select id="pitch" value={formData.pitch} onChange={handleInputChange} className="w-full bg-[#12182c] border border-white/10 rounded-xl px-3.5 py-3 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                                                    <option value="Flat">Flat Slope (0° - 10°)</option>
+                                                    <option value="Standard">Standard walkable pitch</option>
+                                                    <option value="Steep">Very Steep (Scaffolding required)</option>
+                                                </select>
                                             </div>
                                         </div>
 
-                                        {/* Insurance/Financing grid */}
-                                        <div className="flex flex-col gap-2.5">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Funding & Billing Mode</label>
-                                            <div className="grid grid-cols-1 gap-3">
-                                                {[
-                                                    { value: 'Cash / Direct Financing', label: '💰 Out of Pocket / Direct Financing', desc: 'Paying cash or checking loan financing options' },
-                                                    { value: 'Filing Insurance Claim', label: '🛡️ Filing Storm/Wind Insurance Claim', desc: 'Active claims adjuster meeting or wind damage check' },
-                                                    { value: 'Need Insurance Assistance', label: '🤝 Need Insurance Adjuster Assistance', desc: 'Need professional crew representation during inspector evaluation' }
-                                                ].map((ins) => (
-                                                    <button key={ins.value} onClick={() => handleSelectOption('insurance', ins.value)} className={`p-3.5 rounded-xl border text-left flex flex-col gap-1 transition-all ${formData.insurance === ins.value ? 'bg-indigo-500/10 border-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.15)]' : 'bg-[#12182c] border-white/5 text-slate-400 hover:border-white/15'}`}>
-                                                        <span className="text-xs font-bold text-slate-200">{ins.label}</span>
-                                                        <span className="text-[9px] text-slate-500 leading-normal">{ins.desc}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        {/* Grid Row 2: Funding & Age */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Funding / Billing Mode</label>
+                                            <select id="insurance" value={formData.insurance} onChange={handleInputChange} className="w-full bg-[#12182c] border border-white/10 rounded-xl px-3.5 py-3 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                                                <option value="Cash / Direct Financing">💰 Out of Pocket / Direct Financing</option>
+                                                <option value="Filing Insurance Claim">🛡️ Filing Storm/Wind Insurance Claim</option>
+                                                <option value="Need Insurance Assistance">🤝 Need Insurance Inspector Representation</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Shingle Layer Age</label>
+                                            <select id="roofAge" value={formData.roofAge} onChange={handleInputChange} className="w-full bg-[#12182c] border border-white/10 rounded-xl px-3.5 py-3 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors">
+                                                <option value="Under 10 years">🆕 Under 10 Years</option>
+                                                <option value="10 - 20 years">⏱️ 10 - 20 Years</option>
+                                                <option value="20+ years">⏳ 20+ Years (End of lifecycle)</option>
+                                                <option value="Unsure">❓ Unsure of Age</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -424,45 +450,31 @@ export default function Home() {
                                 </div>
                             )}
 
-                            {/* STEP 5: Slope & Age Details (NEW!) */}
+                            {/* STEP 5: Inspection Scheduling Picker (Wizard Embedded!) */}
                             {step === 5 && (
                                 <div className="space-y-6">
                                     <div>
-                                        <h2 className="text-xl font-extrabold text-white">Slope & Age Details</h2>
-                                        <p className="text-xs text-slate-400 mt-1">Specify approximate current shingle age and roof pitch severity.</p>
+                                        <h2 className="text-xl font-extrabold text-white">Schedule Inspection Site Visit</h2>
+                                        <p className="text-xs text-slate-400 mt-1">Book your free on-site physical slope measurement scan.</p>
                                     </div>
 
                                     <div className="space-y-5">
-                                        {/* Slope Pitch selection cards */}
-                                        <div className="flex flex-col gap-2.5">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Roof Slope Pitch</label>
-                                            <div className="grid grid-cols-3 gap-3">
-                                                {[
-                                                    { value: 'Flat', label: 'Flat Slope', desc: '0° - 10° angle' },
-                                                    { value: 'Standard', label: 'Standard Pitch', desc: 'Walkable slope' },
-                                                    { value: 'Steep', label: 'Very Steep', desc: 'Scaffolding needed' }
-                                                ].map((p) => (
-                                                    <button key={p.value} onClick={() => handleSelectOption('pitch', p.value)} className={`p-3 rounded-xl border text-center flex flex-col gap-1 transition-all ${formData.pitch === p.value ? 'bg-indigo-500/10 border-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.15)]' : 'bg-[#12182c] border-white/5 text-slate-400 hover:border-white/15'}`}>
-                                                        <span className="text-xs font-bold text-slate-200">{p.label}</span>
-                                                        <span className="text-[8px] text-slate-500">{p.desc}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider" htmlFor="appointmentDate">Select Preferred Date</label>
+                                            <input type="date" id="appointmentDate" min={todayStr} required value={formData.appointmentDate} onChange={handleInputChange} className="w-full bg-[#12182c] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" />
                                         </div>
 
-                                        {/* Roof Age selection grid */}
                                         <div className="flex flex-col gap-2.5">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Current Shingles Age</label>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Select Preferred Time Slot</label>
+                                            <div className="grid grid-cols-1 gap-2">
                                                 {[
-                                                    { value: 'Under 10 years', label: '🆕 Under 10 Years', desc: 'Relatively new shingle layer' },
-                                                    { value: '10 - 20 years', label: '⏱️ 10 - 20 Years', desc: 'Mid-life wearing detected' },
-                                                    { value: '20+ years', label: '⏳ 20+ Years', desc: 'End of lifecycle threshold' },
-                                                    { value: 'Unsure', label: '❓ Unsure of Age', desc: 'Core checks required' }
-                                                ].map((age) => (
-                                                    <button key={age.value} onClick={() => handleSelectOption('roofAge', age.value)} className={`p-3 rounded-xl border text-left flex flex-col gap-0.5 transition-all ${formData.roofAge === age.value ? 'bg-indigo-500/10 border-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.15)]' : 'bg-[#12182c] border-white/5 text-slate-400 hover:border-white/15'}`}>
-                                                        <span className="text-xs font-bold text-slate-200">{age.label}</span>
-                                                        <span className="text-[9px] text-slate-500">{age.desc}</span>
+                                                    { label: '🌅 Morning (9:00 AM - 11:00 AM)', val: 'Morning (9AM-11AM)' },
+                                                    { label: '☀️ Midday (11:00 AM - 1:00 PM)', val: 'Midday (11AM-1PM)' },
+                                                    { label: '🕒 Afternoon (1:00 PM - 3:00 PM)', val: 'Afternoon (1PM-3PM)' },
+                                                    { label: '🌆 Late Afternoon (3:00 PM - 5:00 PM)', val: 'Late Afternoon (3PM-5PM)' }
+                                                ].map((slot) => (
+                                                    <button key={slot.val} type="button" onClick={() => handleSelectOption('appointmentTime', slot.val)} className={`px-4 py-3 rounded-xl border text-left text-xs font-bold transition-all ${formData.appointmentTime === slot.val ? 'bg-indigo-500/10 border-indigo-500 text-white' : 'bg-[#12182c] border-white/5 text-slate-400 hover:border-white/10'}`}>
+                                                        {slot.label}
                                                     </button>
                                                 ))}
                                             </div>
@@ -491,7 +503,7 @@ export default function Home() {
                 </div>
             </main>
 
-            {/* persistent footer login links */}
+            {/* Footer */}
             <footer className="border-t border-white/5 py-8 text-center text-xs text-slate-500 bg-[#070a13] mt-12 flex flex-col gap-2 items-center">
                 <p>&copy; {new Date().getFullYear()} Quotramax. All rights reserved.</p>
                 <p className="text-[11px] text-slate-400">

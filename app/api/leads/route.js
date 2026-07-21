@@ -98,7 +98,7 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         const body = await req.json();
-        const { name, email, phone, address, propertyType, stories, roofSize, condition, service, material, timeline, insurance, roofAge, pitch } = body;
+        const { name, email, phone, address, propertyType, stories, roofSize, condition, service, material, timeline, insurance, roofAge, pitch, appointment } = body;
 
         // Validation
         if (!name || !email || !address || !roofSize || !material) {
@@ -128,6 +128,7 @@ export async function POST(req) {
             insurance,
             roofAge,
             pitch,
+            appointment,
             estimate: estimateResult
         });
 
@@ -143,7 +144,7 @@ export async function POST(req) {
             motivation: motivationPayload, // holds extra json metadata
             age: condition,                 // holds condition value
             stories: stories.toString(),
-            status: 'New',
+            status: appointment && appointment.date ? 'Inspection Scheduled' : 'New',
             date: new Date().toISOString()
         };
 
@@ -210,10 +211,23 @@ export async function POST(req) {
             </div>
         `;
 
+        const appointmentDetailsHtml = appointment && appointment.date ? `
+            <div style="background-color: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #f59e0b; border-left: 4px solid #d97706;">
+                <p style="margin: 0; font-weight: bold; color: #78350f; font-size: 0.95rem;">📅 Scheduled On-Site Inspection Visit:</p>
+                <p style="margin: 5px 0 0 0; font-weight: bold; color: #b45309; font-size: 1.1rem;">
+                    ${new Date(appointment.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+                <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #d97706; font-weight: bold;">Preferred Time Slot: ${appointment.time}</p>
+            </div>
+        ` : '';
+
         const contractorHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
                 <h2 style="color: #6366f1;">QUOTRAMAX: New Lead Alert!</h2>
                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;">
+                
+                ${appointmentDetailsHtml}
+
                 <p>A new pre-qualified homeowner has completed your estimator funnel:</p>
 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
