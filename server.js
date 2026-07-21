@@ -3,11 +3,10 @@ const { parse } = require('url');
 const next = require('next');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
 const port = process.env.PORT || 8081;
 
 // Initialize Next.js app
-const app = next({ dev, hostname, port });
+const app = next({ dev, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -26,6 +25,6 @@ app.prepare().then(() => {
       process.exit(1);
     })
     .listen(port, () => {
-      console.log(`> Server ready at http://${hostname}:${port}`);
+      console.log(`> Server ready on port ${port}`);
     });
 });
