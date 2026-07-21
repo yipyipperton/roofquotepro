@@ -60,8 +60,7 @@ export default function Home() {
         const initAutocomplete = () => {
             if (!window.google || !addressInputRef.current) return;
             autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-                types: ['address'],
-                componentRestrictions: { country: 'us' }
+                types: ['address']
             });
 
             autocompleteRef.current.addListener('place_changed', () => {

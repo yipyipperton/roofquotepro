@@ -9,7 +9,7 @@ import path from 'path';
 const LEADS_FILE = path.join(process.cwd(), 'vanilla_backup/data/leads.json');
 
 // Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY || 're_F5vb8qtc_NhJQvSwn7USSnziH3qEoLnpQ');
+const resend = new Resend(process.env.RESEND_API_KEY || '');
 
 async function getContractorEmail() {
     if (supabase) {
