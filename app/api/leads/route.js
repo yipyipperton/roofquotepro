@@ -63,7 +63,8 @@ export async function GET(req) {
                             condition: row.age || 'Good',
                             service: extraData.service || 'Replacement',
                             photos: extraData.photos || [],
-                            estimateDetails: extraData.estimate || null
+                            estimateDetails: extraData.estimate || null,
+                            appointment: extraData.appointment || null
                         };
                     });
                     return NextResponse.json(leads);
@@ -113,12 +114,25 @@ export async function POST(req) {
 
         const meanPrice = Math.round((estimateResult.minPrice + estimateResult.maxPrice) / 2);
         const uniqueId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // Construct absolute origin URL from headers
+        const host = req.headers.get('host') || 'localhost:8081';
+        const protocol = req.headers.get('x-forwarded-proto') || 'http';
+        const absoluteOrigin = `${protocol}://${host}`;
+
+        // Map uploaded paths to absolute URLs
+        const absolutePhotos = (photos || []).map(url => {
+            if (url.startsWith('/')) {
+                return `${absoluteOrigin}${url}`;
+            }
+            return url;
+        });
         
         // Serialize extra parameters to remain fully compatible with existing DB table schema
         const motivationPayload = JSON.stringify({
             propertyType,
             service,
-            photos: photos || [],
+            photos: absolutePhotos,
             estimate: estimateResult
         });
 
@@ -201,7 +215,7 @@ export async function POST(req) {
             </div>
         `;
 
-        const photoHtmlList = (photos || []).map(url => `
+        const photoHtmlList = (absolutePhotos || []).map(url => `
             <div style="margin-top: 10px;">
                 <a href="${url}" target="_blank" style="color: #6366f1; text-decoration: underline;">View Uploaded Photo</a>
             </div>

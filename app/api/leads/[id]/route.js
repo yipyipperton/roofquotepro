@@ -97,7 +97,7 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
     try {
         const { id } = await params;
-        const { status, scheduleInspection } = await req.json();
+        const { status, scheduleInspection, appointment } = await req.json();
 
         const lead = await findLeadById(id);
         if (!lead) {
@@ -105,16 +105,34 @@ export async function PATCH(req, { params }) {
         }
 
         let updatedStatus = status || lead.status;
-        if (scheduleInspection) {
+        if (scheduleInspection || appointment) {
             updatedStatus = 'Inspection Scheduled';
         }
 
+        // Parse existing motivation metadata to append appointment details
+        let extraData = {};
+        try {
+            if (lead.motivation && lead.motivation.startsWith('{')) {
+                extraData = JSON.parse(lead.motivation);
+            }
+        } catch (e) {}
+
+        if (appointment) {
+            extraData.appointment = appointment; // { date, time }
+        }
+
+        const updatedMotivation = JSON.stringify(extraData);
         let success = false;
 
         if (supabase) {
             try {
-                const { error } = await supabase.from('leads').update({ status: updatedStatus }).eq('id', id);
+                const { error } = await supabase.from('leads').update({ 
+                    status: updatedStatus,
+                    motivation: updatedMotivation
+                }).eq('id', id);
+                
                 if (!error) success = true;
+                else console.error('Supabase patch update error:', error);
             } catch (e) {
                 console.error('Supabase patch lead status exception:', e);
             }
@@ -128,12 +146,52 @@ export async function PATCH(req, { params }) {
                 const leadIndex = leads.findIndex(l => l.id === id);
                 if (leadIndex !== -1) {
                     leads[leadIndex].status = updatedStatus;
+                    leads[leadIndex].motivation = updatedMotivation;
                     fs.writeFileSync(LEADS_FILE, JSON.stringify(leads, null, 2), 'utf8');
                     success = true;
                 }
             }
         } catch (e) {
             console.error('Local JSON leads patch sync error:', e);
+        }
+
+        // Dispatch Resend email alert to contractor if appointment is scheduled
+        if (appointment && success) {
+            try {
+                const { Resend } = require('resend');
+                const resend = new Resend(process.env.RESEND_API_KEY || '');
+                const contractorEmail = await getContractorEmail();
+
+                const appointmentHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <h2 style="color: #6366f1;">📅 Inspection Appointment Scheduled!</h2>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;">
+                        <p>Homeowner <strong>${lead.name}</strong> has confirmed their inspection date and time slot:</p>
+                        
+                        <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #6366f1;">
+                            <p style="margin: 0; font-weight: bold; color: #0f172a;">Date: ${new Date(appointment.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p style="margin: 5px 0 0 0; font-weight: bold; color: #6366f1;">Time Slot: ${appointment.time}</p>
+                        </div>
+
+                        <h3>Customer Details:</h3>
+                        <ul>
+                            <li><strong>Name:</strong> ${lead.name}</li>
+                            <li><strong>Address:</strong> ${lead.address}</li>
+                            <li><strong>Email:</strong> ${lead.email}</li>
+                            <li><strong>Phone:</strong> ${lead.phone || 'Not provided'}</li>
+                        </ul>
+                    </div>
+                `;
+
+                await resend.emails.send({
+                    from: 'Quotramax Scheduling <onboarding@resend.dev>',
+                    to: contractorEmail,
+                    subject: `📅 Appointment: ${lead.name} - ${appointment.date}`,
+                    html: appointmentHtml
+                });
+            } catch (e) {
+                console.error('Resend dispatch error for scheduled appointment:', e);
+            }
         }
 
         return NextResponse.json({ success });

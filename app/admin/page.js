@@ -316,6 +316,11 @@ export default function Admin() {
                                                             <option value="Won">Won</option>
                                                             <option value="Lost">Lost</option>
                                                         </select>
+                                                        {lead.status === 'Inspection Scheduled' && lead.appointment && (
+                                                            <span className="block text-[9px] font-bold text-amber-400 mt-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-center truncate max-w-[120px]">
+                                                                📅 {lead.appointment.date}
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="py-4 px-6 text-slate-500">
                                                         {new Date(lead.date).toLocaleDateString()}
@@ -481,6 +486,18 @@ export default function Admin() {
                                 </div>
 
                             </div>
+
+                            {/* Scheduled Appointment Alert inside modal */}
+                            {selectedLead.status === 'Inspection Scheduled' && selectedLead.appointment && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-center gap-3 text-amber-400">
+                                    <span className="text-xl">📅</span>
+                                    <div>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider block text-slate-500">Scheduled Inspection Appointment</span>
+                                        <strong className="text-sm">{new Date(selectedLead.appointment.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+                                        <span className="block text-xs font-semibold mt-0.5 text-slate-300">{selectedLead.appointment.time}</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Estimate Range Summary */}
                             <div className="bg-slate-850 border border-white/5 p-4 rounded-xl flex items-center justify-between">
