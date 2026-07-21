@@ -276,15 +276,31 @@ export async function POST(req) {
             </div>
         `;
 
-        // Send emails
+        // Send emails with isolated try-catch blocks to prevent sandbox limitations from blocking contractor notification
         try {
             await resend.emails.send({
                 from: 'Quotramax Onboarding <onboarding@resend.dev>',
-                to: email,
+                to: email, // Homeowner
                 subject: 'Your Preliminary Roof Estimate Summary - Quotramax',
                 html: homeownerHtml
             });
+        } catch (e) {
+            console.warn('Failed sending directly to homeowner (possibly due to Resend Sandbox restrictions):', e.message);
+        }
 
+        try {
+            // Also send a copy of the homeowner template to the contractor for testing purposes
+            await resend.emails.send({
+                from: 'Quotramax Onboarding <onboarding@resend.dev>',
+                to: contractorEmail,
+                subject: `[Homeowner Preview Copy] Your Preliminary Roof Estimate Summary - Quotramax`,
+                html: homeownerHtml
+            });
+        } catch (e) {
+            console.error('Failed sending homeowner preview to contractor:', e.message);
+        }
+
+        try {
             await resend.emails.send({
                 from: 'Quotramax Lead Alert <onboarding@resend.dev>',
                 to: contractorEmail,
@@ -292,7 +308,7 @@ export async function POST(req) {
                 html: contractorHtml
             });
         } catch (e) {
-            console.error('Resend API dispatch errors:', e);
+            console.error('Failed sending lead alert to contractor:', e.message);
         }
 
         return NextResponse.json({ success: true, leadId });

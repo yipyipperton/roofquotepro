@@ -315,18 +315,7 @@ export default function Results() {
                             </ul>
                         </div>
 
-                        {/* Contractor Contact Card */}
-                        <div className="border border-white/10 rounded-2xl bg-[#0d1222]/80 backdrop-blur-2xl p-6 shadow-2xl text-center">
-                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Contractor Info</h4>
-                            <span className="font-heading font-black text-lg text-white block mb-1">QUOTRAMAX SERVICES</span>
-                            <span className="text-[10px] text-indigo-400 font-extrabold block mb-4">Licensed Local Roofing Crew</span>
-                            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                                Need help? Email our project coordinator directly.
-                            </p>
-                            <a href={`mailto:${contractor?.contractorEmail || 'isaaqabukar1@gmail.com'}`} className="block w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-slate-200 transition-colors">
-                                ✉️ Email Project Coordinator
-                            </a>
-                        </div>
+
 
                     </div>
                 </div>

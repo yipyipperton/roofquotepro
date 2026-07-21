@@ -28,7 +28,26 @@ export default function Home() {
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
+        if (id === 'phone') {
+            // Strip all non-digits and limit to 10
+            const input = value.replace(/\D/g, '');
+            const cleanInput = input.substring(0, 10);
+            
+            // Auto format: XXX-XXX-XXXX
+            let formatted = '';
+            if (cleanInput.length > 0) {
+                formatted += cleanInput.substring(0, 3);
+            }
+            if (cleanInput.length > 3) {
+                formatted += '-' + cleanInput.substring(3, 6);
+            }
+            if (cleanInput.length > 6) {
+                formatted += '-' + cleanInput.substring(6, 10);
+            }
+            setFormData(prev => ({ ...prev, phone: formatted }));
+        } else {
+            setFormData(prev => ({ ...prev, [id]: value }));
+        }
     };
 
     const handleSliderChange = (e) => {
@@ -44,6 +63,12 @@ export default function Home() {
         if (step === 1) {
             if (!formData.name.trim()) return 'Please enter your full name.';
             if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) return 'Please enter a valid email address.';
+            
+            const digitsOnly = formData.phone.replace(/\D/g, '');
+            if (digitsOnly.length !== 10) {
+                return 'Please enter a valid 10-digit phone number.';
+            }
+            
             if (!formData.address.trim()) return 'Please enter your street address.';
         }
         return '';
@@ -196,8 +221,8 @@ export default function Home() {
                                             <input id="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="john@example.com" className="w-full bg-[#12182c] border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-slate-650" />
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider" htmlFor="phone">Phone Number (Optional)</label>
-                                            <input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="(727) 808-4646" className="w-full bg-[#12182c] border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-slate-650" />
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider" htmlFor="phone">Phone Number</label>
+                                            <input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="727-808-4646" className="w-full bg-[#12182c] border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-slate-650" />
                                         </div>
                                         <div className="flex flex-col gap-2 relative">
                                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider" htmlFor="address">Project Street Address</label>
