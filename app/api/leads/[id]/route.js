@@ -57,6 +57,10 @@ export async function GET(req, { params }) {
         const size = lead.size || lead.roof_size || 2000;
         const propertyType = extraData.propertyType || 'Residential';
         const service = extraData.service || 'Replacement';
+        const timeline = extraData.timeline || 'Under 1 month';
+        const insurance = extraData.insurance || 'Cash / Direct Financing';
+        const roofAge = extraData.roofAge || lead.age || '10 - 20 years';
+        const pitch = extraData.pitch || 'Standard';
 
         const estimate = extraData.estimate || calculateEstimate({
             material,
@@ -64,7 +68,9 @@ export async function GET(req, { params }) {
             condition,
             service,
             property_type: propertyType,
-            roof_size: size
+            roof_size: size,
+            pitch,
+            roof_age: roofAge
         });
 
         const mappedLead = {
@@ -83,7 +89,10 @@ export async function GET(req, { params }) {
             propertyType,
             condition,
             service,
-            photos: extraData.photos || [],
+            timeline,
+            insurance,
+            roofAge,
+            pitch,
             estimate
         };
 

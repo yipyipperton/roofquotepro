@@ -332,9 +332,15 @@ export default function Results() {
                 </div>
             </main>
 
-            {/* Footer */}
-            <footer className="border-t border-white/5 py-8 text-center text-xs text-slate-500 bg-[#070a13] mt-12">
+            {/* persistent footer login links */}
+            <footer className="border-t border-white/5 py-8 text-center text-xs text-slate-500 bg-[#070a13] mt-12 flex flex-col gap-2 items-center">
                 <p>&copy; {new Date().getFullYear()} Quotramax. All rights reserved.</p>
+                <p className="text-[11px] text-slate-400">
+                    Are you a contractor?{' '}
+                    <span onClick={() => router.push('/login')} className="text-indigo-400 hover:underline hover:text-indigo-300 cursor-pointer font-bold">
+                        Contractor Sign In Portal
+                    </span>
+                </p>
             </footer>
         </div>
     );

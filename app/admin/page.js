@@ -452,39 +452,54 @@ export default function Admin() {
                                         <span className="text-slate-500 block">Physical Address:</span>
                                         <span className="text-slate-200 block font-semibold leading-relaxed">{selectedLead.address}</span>
                                     </div>
-                                </div>
-
-                                {/* Details block */}
-                                <div className="space-y-4">
-                                    <h4 className="font-bold text-slate-300 uppercase tracking-widest text-[10px]">Roof Parameters</h4>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <span className="text-slate-500 block">Size:</span>
-                                            <span className="text-slate-200 font-semibold">{selectedLead.size.toLocaleString()} sq ft</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-500 block">Material:</span>
-                                            <span className="text-slate-200 font-semibold">{selectedLead.material}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-500 block">Height Stories:</span>
-                                            <span className="text-slate-200 font-semibold">{selectedLead.stories} Story</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-500 block">Service Scope:</span>
-                                            <span className="text-slate-200 font-semibold">{selectedLead.service}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-500 block">Condition:</span>
-                                            <span className="text-slate-200 font-semibold">{selectedLead.condition}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-slate-500 block">Property:</span>
-                                            <span className="text-slate-200 font-semibold">{selectedLead.propertyType}</span>
+                                    
+                                    {/* Details block */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-bold text-slate-300 uppercase tracking-widest text-[10px]">Project Qualifications</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <span className="text-slate-500 block">Size:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.size.toLocaleString()} sq ft</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Material:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.material}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Stories:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.stories} Story</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Scope:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.service}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Condition:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.condition}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Property:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.propertyType}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Timeline:</span>
+                                                <span className="text-indigo-400 font-bold">{selectedLead.timeline}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500 block">Slope Pitch:</span>
+                                                <span className="text-slate-200 font-semibold">{selectedLead.pitch}</span>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <span className="text-slate-500 block">Financing:</span>
+                                                <span className="text-slate-250 font-semibold">{selectedLead.insurance}</span>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <span className="text-slate-500 block">Roof Age:</span>
+                                                <span className="text-slate-250 font-semibold">{selectedLead.roofAge}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
 
                             {/* Scheduled Appointment Alert inside modal */}
@@ -516,20 +531,6 @@ export default function Admin() {
                                     </select>
                                 </div>
                             </div>
-
-                            {/* Uploaded Photos Grid */}
-                            {selectedLead.photos && selectedLead.photos.length > 0 && (
-                                <div className="space-y-2">
-                                    <h4 className="font-bold text-slate-300 uppercase tracking-widest text-[10px]">Uploaded Roof & Exterior Photos</h4>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {selectedLead.photos.map((url, idx) => (
-                                            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square border border-white/5 rounded-lg overflow-hidden block hover:opacity-80 transition-opacity">
-                                                <img src={url} alt={`Client upload ${idx}`} className="w-full h-full object-cover" />
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Footer Actions */}
                             <div className="flex justify-between items-center border-t border-white/5 pt-6">

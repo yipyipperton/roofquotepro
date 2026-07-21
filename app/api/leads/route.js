@@ -62,7 +62,10 @@ export async function GET(req) {
                             propertyType: extraData.propertyType || 'Residential',
                             condition: row.age || 'Good',
                             service: extraData.service || 'Replacement',
-                            photos: extraData.photos || [],
+                            timeline: extraData.timeline || 'Under 1 month',
+                            insurance: extraData.insurance || 'Cash / Direct Financing',
+                            roofAge: extraData.roofAge || '10 - 20 years',
+                            pitch: extraData.pitch || 'Standard',
                             estimateDetails: extraData.estimate || null,
                             appointment: extraData.appointment || null
                         };
@@ -95,7 +98,7 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         const body = await req.json();
-        const { name, email, phone, address, propertyType, stories, roofSize, condition, service, material, photos } = body;
+        const { name, email, phone, address, propertyType, stories, roofSize, condition, service, material, timeline, insurance, roofAge, pitch } = body;
 
         // Validation
         if (!name || !email || !address || !roofSize || !material) {
@@ -109,30 +112,22 @@ export async function POST(req) {
             condition,
             service,
             property_type: propertyType,
-            roof_size: roofSize
+            roof_size: roofSize,
+            pitch,
+            roof_age: roofAge
         });
 
         const meanPrice = Math.round((estimateResult.minPrice + estimateResult.maxPrice) / 2);
         const uniqueId = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        // Construct absolute origin URL from headers
-        const host = req.headers.get('host') || 'localhost:8081';
-        const protocol = req.headers.get('x-forwarded-proto') || 'http';
-        const absoluteOrigin = `${protocol}://${host}`;
-
-        // Map uploaded paths to absolute URLs
-        const absolutePhotos = (photos || []).map(url => {
-            if (url.startsWith('/')) {
-                return `${absoluteOrigin}${url}`;
-            }
-            return url;
-        });
         
         // Serialize extra parameters to remain fully compatible with existing DB table schema
         const motivationPayload = JSON.stringify({
             propertyType,
             service,
-            photos: absolutePhotos,
+            timeline,
+            insurance,
+            roofAge,
+            pitch,
             estimate: estimateResult
         });
 
@@ -215,12 +210,6 @@ export async function POST(req) {
             </div>
         `;
 
-        const photoHtmlList = (absolutePhotos || []).map(url => `
-            <div style="margin-top: 10px;">
-                <a href="${url}" target="_blank" style="color: #6366f1; text-decoration: underline;">View Uploaded Photo</a>
-            </div>
-        `).join('');
-
         const contractorHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
                 <h2 style="color: #6366f1;">QUOTRAMAX: New Lead Alert!</h2>
@@ -262,8 +251,24 @@ export async function POST(req) {
                     </tr>
                 </table>
 
-                <h3>Uploaded Photos:</h3>
-                ${photoHtmlList || '<p style="color: #64748b;">No photos uploaded.</p>'}
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px; border-top: 2px solid #e2e8f0;">
+                    <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold; width: 40%;">Project Timeline:</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #6366f1; font-weight: bold;">${timeline}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">Funding / Insurance:</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${insurance}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">Current Roof Age:</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${roofAge}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">Slope Pitch:</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${pitch} Slope</td>
+                    </tr>
+                </table>
 
                 <div style="margin-top: 30px; text-align: center;">
                     <a href="${req.headers.get('origin') || ''}/login" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Open Contractor Dashboard</a>
