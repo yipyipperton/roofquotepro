@@ -151,6 +151,84 @@ export default function Admin() {
         }
     };
 
+    const handleExportCSV = () => {
+        if (filteredLeads.length === 0) {
+            alert('No leads matching current search/filter criteria to export.');
+            return;
+        }
+
+        const headers = [
+            'Lead ID',
+            'Date Created',
+            'Status',
+            'Name',
+            'Email',
+            'Phone',
+            'Address',
+            'Zip',
+            'Roof Size (sq ft)',
+            'Material',
+            'Property Type',
+            'Stories',
+            'Service Scope',
+            'Condition',
+            'Timeline',
+            'Financing / Insurance',
+            'Roof Age',
+            'Slope Pitch',
+            'Est Price ($)',
+            'Scheduled Inspection Date',
+            'Scheduled Inspection Time'
+        ];
+
+        const rows = filteredLeads.map(lead => [
+            lead.id || '',
+            lead.date ? new Date(lead.date).toISOString().split('T')[0] : '',
+            lead.status || 'New',
+            lead.name || '',
+            lead.email || '',
+            lead.phone || '',
+            lead.address || '',
+            lead.zip || '',
+            lead.size || '',
+            lead.material || '',
+            lead.propertyType || '',
+            lead.stories || '',
+            lead.service || '',
+            lead.condition || '',
+            lead.timeline || '',
+            lead.insurance || '',
+            lead.roofAge || '',
+            lead.pitch || '',
+            lead.price || '',
+            lead.appointment?.date || '',
+            lead.appointment?.time || ''
+        ]);
+
+        const escapeCSVField = (field) => {
+            const str = String(field ?? '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvContent = [
+            headers.map(escapeCSVField).join(','),
+            ...rows.map(row => row.map(escapeCSVField).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('download', `quotramax_leads_${timestamp}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#070a13] text-slate-100 flex flex-col items-center justify-center font-sans">
@@ -248,7 +326,7 @@ export default function Admin() {
                                 <span className="absolute left-3 top-3.5 text-slate-500 text-xs">🔍</span>
                             </div>
 
-                            <div className="flex gap-4 items-center">
+                            <div className="flex gap-3 items-center">
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Status:</span>
                                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="bg-slate-850 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white">
@@ -260,6 +338,9 @@ export default function Admin() {
                                         <option value="Lost">Lost</option>
                                     </select>
                                 </div>
+                                <button onClick={handleExportCSV} className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/10 px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                    📊 Export CSV
+                                </button>
                                 <button onClick={handleClearLeads} className="text-xs font-semibold text-slate-500 hover:text-red-400 transition-colors border border-white/5 hover:border-red-500/20 bg-slate-850/40 px-3 py-2 rounded-lg">
                                     🗑️ Clear Database
                                 </button>
